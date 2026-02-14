@@ -1,27 +1,46 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 interface Video {
   id: string
   title: string
   description: string
   thumbnail: string
+  publishedAt?: string
+  channelTitle?: string
 }
-
-// Example videos - replace with your actual YouTube video IDs
-const videos: Video[] = [
-  {
-    id: 'dQw4w9WgXcQ', // Replace with your actual video ID
-    title: 'Welcome to Average Dad Athletics',
-    description: 'Introduction to the community and what we\'re all about.',
-    thumbnail: '',
-  },
-  // Add more videos here as you create them
-]
 
 export default function VideosPage() {
   const [selectedVideo, setSelectedVideo] = useState<string | null>(null)
+  const [videos, setVideos] = useState<Video[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const fetchVideos = async () => {
+      try {
+        setLoading(true)
+        const response = await fetch('/api/youtube/videos')
+        
+        if (!response.ok) {
+          const errorData = await response.json()
+          throw new Error(errorData.error || 'Failed to fetch videos')
+        }
+        
+        const data = await response.json()
+        setVideos(data.videos || [])
+        setError(null)
+      } catch (err: any) {
+        console.error('Error fetching videos:', err)
+        setError(err.message || 'Failed to load videos. Please try again later.')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchVideos()
+  }, [])
 
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4">
@@ -35,7 +54,22 @@ export default function VideosPage() {
           </p>
         </div>
 
-        {selectedVideo ? (
+        {loading ? (
+          <div className="text-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading videos...</p>
+          </div>
+        ) : error ? (
+          <div className="text-center py-12">
+            <p className="text-red-600 text-lg mb-4">{error}</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="text-primary-600 hover:text-primary-700 font-medium"
+            >
+              Try again
+            </button>
+          </div>
+        ) : selectedVideo ? (
           <div className="mb-8">
             <button
               onClick={() => setSelectedVideo(null)}
@@ -65,11 +99,19 @@ export default function VideosPage() {
                   onClick={() => setSelectedVideo(video.id)}
                 >
                   <div className="relative aspect-video bg-gray-200">
-                    <img
-                      src={`https://img.youtube.com/vi/${video.id}/maxresdefault.jpg`}
-                      alt={video.title}
-                      className="w-full h-full object-cover"
-                    />
+                    {video.thumbnail ? (
+                      <img
+                        src={video.thumbnail}
+                        alt={video.title}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <img
+                        src={`https://img.youtube.com/vi/${video.id}/maxresdefault.jpg`}
+                        alt={video.title}
+                        className="w-full h-full object-cover"
+                      />
+                    )}
                     <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30 hover:bg-opacity-50 transition-opacity">
                       <div className="w-16 h-16 bg-primary-600 rounded-full flex items-center justify-center">
                         <svg
@@ -83,8 +125,19 @@ export default function VideosPage() {
                     </div>
                   </div>
                   <div className="p-4">
-                    <h3 className="font-semibold text-lg mb-2 text-gray-900">{video.title}</h3>
-                    <p className="text-gray-600 text-sm">{video.description}</p>
+                    <h3 className="font-semibold text-lg mb-2 text-gray-900 line-clamp-2">{video.title}</h3>
+                    {video.publishedAt && (
+                      <p className="text-gray-500 text-xs mb-2">
+                        {new Date(video.publishedAt).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric'
+                        })}
+                      </p>
+                    )}
+                    <p className="text-gray-600 text-sm line-clamp-2">
+                      {video.description || 'No description available'}
+                    </p>
                   </div>
                 </div>
               ))
@@ -92,7 +145,7 @@ export default function VideosPage() {
               <div className="col-span-full text-center py-12">
                 <p className="text-gray-600 text-lg mb-4">No videos yet. Check back soon!</p>
                 <p className="text-gray-500">
-                  Videos will appear here once you start posting to YouTube.
+                  Videos will appear here automatically once you start posting to YouTube.
                 </p>
               </div>
             )}
@@ -101,7 +154,7 @@ export default function VideosPage() {
 
         <div className="mt-12 text-center">
           <a
-            href="https://youtube.com"
+            href="https://www.youtube.com/@AverageDadAthletics"
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 bg-red-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-red-700 transition-colors"
