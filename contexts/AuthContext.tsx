@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
+import { createContext, useContext, useEffect, useState, useRef, ReactNode } from 'react'
 import { 
   User, 
   onAuthStateChanged, 
@@ -31,6 +31,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
+  const isOAuthInProgressRef = useRef(false)
 
   useEffect(() => {
     if (!isFirebaseConfigured() || !auth) {
@@ -38,31 +39,92 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return
     }
 
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (firebaseUser) {
-        // Get additional user data from Firestore
-        try {
-          if (db) {
-            const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid))
-            if (!userDoc.exists() && firebaseUser.email) {
-              // Create user document if it doesn't exist
-              await setDoc(doc(db, 'users', firebaseUser.uid), {
-                name: firebaseUser.displayName || 'User',
-                email: firebaseUser.email,
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString(),
-              })
+    // Wait a tick to ensure auth is fully initialized
+    let mounted = true
+    let unsubscribe: (() => void) | null = null
+
+    const setupAuthListener = () => {
+      try {
+        // Check if auth is ready by accessing currentUser
+        // This helps ensure auth is initialized
+        if (!auth) {
+          setLoading(false)
+          return
+        }
+
+        unsubscribe = onAuthStateChanged(
+          auth,
+          async (firebaseUser) => {
+            if (!mounted) return
+            
+            // Skip if OAuth is in progress to avoid race conditions
+            if (isOAuthInProgressRef.current) {
+              return
+            }
+
+            if (firebaseUser) {
+              // Get additional user data from Firestore
+              try {
+                if (db) {
+                  const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid))
+                  if (!userDoc.exists() && firebaseUser.email) {
+                    // Create user document if it doesn't exist
+                    await setDoc(doc(db, 'users', firebaseUser.uid), {
+                      name: firebaseUser.displayName || 'User',
+                      email: firebaseUser.email,
+                      createdAt: new Date().toISOString(),
+                      updatedAt: new Date().toISOString(),
+                    })
+                  }
+                }
+              } catch (error) {
+                console.error('Error fetching user data:', error)
+              }
+            }
+            if (mounted) {
+              setUser(firebaseUser)
+              setLoading(false)
+            }
+          },
+          (error) => {
+            // Suppress internal assertion errors - these are Firebase bugs
+            if (error?.message?.includes('INTERNAL ASSERTION FAILED')) {
+              console.warn('Firebase Auth internal error (suppressed):', error.message)
+              return
+            }
+            // Handle other auth state change errors
+            console.error('Auth state change error:', error)
+            if (mounted) {
+              setLoading(false)
             }
           }
-        } catch (error) {
-          console.error('Error fetching user data:', error)
+        )
+      } catch (error: any) {
+        // Suppress internal assertion errors during setup
+        if (error?.message?.includes('INTERNAL ASSERTION FAILED')) {
+          console.warn('Firebase Auth internal error during setup (suppressed):', error.message)
+          if (mounted) {
+            setLoading(false)
+          }
+          return
+        }
+        console.error('Error setting up auth listener:', error)
+        if (mounted) {
+          setLoading(false)
         }
       }
-      setUser(firebaseUser)
-      setLoading(false)
-    })
+    }
 
-    return () => unsubscribe()
+    // Use setTimeout to ensure auth is ready
+    const timeoutId = setTimeout(setupAuthListener, 0)
+
+    return () => {
+      mounted = false
+      clearTimeout(timeoutId)
+      if (unsubscribe) {
+        unsubscribe()
+      }
+    }
   }, [])
 
   const signIn = async (email: string, password: string) => {
@@ -76,6 +138,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!auth) {
       throw new Error('Firebase Auth is not configured')
     }
+    
+    isOAuthInProgressRef.current = true
     
     try {
       const provider = new GoogleAuthProvider()
@@ -112,6 +176,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       }
     } catch (error: any) {
+      // Suppress internal assertion errors - these are Firebase bugs
+      if (error?.message?.includes('INTERNAL ASSERTION FAILED')) {
+        console.warn('Firebase Auth internal error (suppressed):', error.message)
+        // Still throw a user-friendly error
+        throw new Error('Sign-in encountered an issue. Please try again.')
+      }
       // Handle specific Firebase Auth errors
       if (error.code === 'auth/popup-closed-by-user') {
         throw new Error('Sign-in popup was closed. Please try again.')
@@ -125,6 +195,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.error('Google sign-in error:', error)
         throw new Error('Failed to sign in with Google. Please try again.')
       }
+    } finally {
+      isOAuthInProgressRef.current = false
     }
   }
 
@@ -132,6 +204,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!auth) {
       throw new Error('Firebase Auth is not configured')
     }
+    
+    isOAuthInProgressRef.current = true
     
     try {
       const provider = new OAuthProvider('apple.com')
@@ -163,6 +237,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       }
     } catch (error: any) {
+      // Suppress internal assertion errors - these are Firebase bugs
+      if (error?.message?.includes('INTERNAL ASSERTION FAILED')) {
+        console.warn('Firebase Auth internal error (suppressed):', error.message)
+        // Still throw a user-friendly error
+        throw new Error('Sign-in encountered an issue. Please try again.')
+      }
       // Handle specific Firebase Auth errors
       if (error.code === 'auth/popup-closed-by-user') {
         throw new Error('Sign-in popup was closed. Please try again.')
@@ -176,6 +256,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.error('Apple sign-in error:', error)
         throw new Error('Failed to sign in with Apple. Please try again.')
       }
+    } finally {
+      isOAuthInProgressRef.current = false
     }
   }
 

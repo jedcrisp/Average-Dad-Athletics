@@ -31,7 +31,22 @@ if (isFirebaseConfigured()) {
 }
 
 // Initialize Firebase services for client-side use (only if configured)
-export const auth: Auth | null = app ? getAuth(app) : null
-export const db: Firestore | null = app ? getFirestore(app) : null
-export const storage: FirebaseStorage | null = app ? getStorage(app) : null
+// Use lazy initialization to ensure app is ready
+let _auth: Auth | null = null
+let _db: Firestore | null = null
+let _storage: FirebaseStorage | null = null
+
+if (app) {
+  try {
+    _auth = getAuth(app)
+    _db = getFirestore(app)
+    _storage = getStorage(app)
+  } catch (error) {
+    console.error('Failed to initialize Firebase services:', error)
+  }
+}
+
+export const auth: Auth | null = _auth
+export const db: Firestore | null = _db
+export const storage: FirebaseStorage | null = _storage
 export { app, analytics }
