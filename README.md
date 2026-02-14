@@ -79,20 +79,18 @@ The project uses Tailwind CSS. Customize colors in `tailwind.config.js`.
 2. Go to [Vercel](https://vercel.com) and sign in
 3. Click "Add New Project"
 4. Import your GitHub repository: `jedcrisp/Average-Dad-Athletics`
-5. **Important:** Add all environment variables in Vercel's dashboard:
-   - All `NEXT_PUBLIC_FIREBASE_*` variables
-   - `NEXTAUTH_SECRET` (generate with: `openssl rand -base64 32`)
-   - `NEXTAUTH_URL` (will be auto-set to your Vercel domain, but you can override)
-   - `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` (if using Google OAuth)
-   - `APPLE_ID` and `APPLE_SECRET` (if using Apple Sign In)
+5. **Important:** Add all Firebase environment variables in Vercel's dashboard:
+   - Go to **Settings** → **Environment Variables**
+   - Add all 7 `NEXT_PUBLIC_FIREBASE_*` variables (see `VERCEL_SETUP.md` for detailed instructions)
+   - Enable for: Production, Preview, and Development
 6. Click "Deploy"
+7. **After deployment:** Redeploy to ensure environment variables are loaded
 
 **Note:** Vercel will automatically:
 - Detect Next.js framework
-- Set `NEXTAUTH_URL` to your deployment URL
 - Build and deploy your app
 
-After deployment, update your OAuth redirect URIs to include your Vercel domain.
+**See `VERCEL_SETUP.md` for step-by-step instructions on adding environment variables.**
 
 ### Other Platforms
 
@@ -147,68 +145,33 @@ NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID=your-measurement-id
 
 ## Authentication Setup
 
-### Additional Environment Variables
+Authentication is handled entirely through Firebase. No additional environment variables are needed beyond the Firebase configuration.
 
-Add these to your `.env.local` file:
+### Setting up Google Sign In
 
-```env
-# NextAuth.js
-NEXTAUTH_SECRET=your-secret-key-here
-NEXTAUTH_URL=http://localhost:3000
+1. Go to [Firebase Console](https://console.firebase.google.com/)
+2. Select your project
+3. Go to **Authentication** → **Sign-in method**
+4. Click on **Google**
+5. Enable Google Sign In
+6. Add your project's support email
+7. Save
 
-# Google OAuth (optional but recommended)
-GOOGLE_CLIENT_ID=your-google-client-id
-GOOGLE_CLIENT_SECRET=your-google-client-secret
-
-# Apple OAuth (optional but recommended)
-APPLE_ID=your-apple-service-id
-APPLE_SECRET=your-apple-private-key-jwt
-# Note: APPLE_TEAM_ID should be included in the JWT secret, not as a separate variable
-```
-
-### Setting up Google OAuth
-
-1. Go to [Google Cloud Console](https://console.cloud.google.com/)
-2. Create a new project or select an existing one
-3. Enable the Google+ API
-4. Go to "Credentials" → "Create Credentials" → "OAuth client ID"
-5. Choose "Web application"
-6. Add authorized redirect URI: `http://localhost:3000/api/auth/callback/google` (for development)
-7. For production, add: `https://yourdomain.com/api/auth/callback/google`
-8. Copy the Client ID and Client Secret to your `.env.local` file
+That's it! Firebase handles all OAuth configuration automatically.
 
 ### Setting up Apple Sign In
 
-1. Go to [Apple Developer Portal](https://developer.apple.com/)
-2. Navigate to "Certificates, Identifiers & Profiles"
-3. Create a new **Services ID** (or use existing)
-   - Register a new Services ID
-   - Enable "Sign in with Apple"
-   - Add your domain and redirect URLs:
-     - `http://localhost:3000/api/auth/callback/apple` (development)
-     - `https://yourdomain.com/api/auth/callback/apple` (production)
-4. Create a **Key** for Sign in with Apple:
-   - Go to "Keys" → Create a new key
-   - Enable "Sign in with Apple"
-   - Download the `.p8` key file (you can only download it once!)
-   - Note your Key ID and Team ID
-5. Generate a JWT (JSON Web Token) for the `APPLE_SECRET`:
-   - Use a tool like [jwt.io](https://jwt.io/) or a library
-   - Header: `{"alg": "ES256", "kid": "YOUR_KEY_ID"}`
-   - Payload: `{"iss": "YOUR_TEAM_ID", "iat": timestamp, "exp": timestamp, "aud": "https://appleid.apple.com", "sub": "YOUR_SERVICE_ID"}`
-   - Sign with your `.p8` private key
-6. Add to `.env.local`:
-   - `APPLE_ID` = Your Services ID
-   - `APPLE_SECRET` = The JWT you generated (must include your Team ID in the JWT payload)
+1. Go to [Firebase Console](https://console.firebase.google.com/)
+2. Select your project
+3. Go to **Authentication** → **Sign-in method**
+4. Click on **Apple**
+5. Enable Apple Sign In
+6. Follow the setup instructions in Firebase Console
+7. Configure your Apple Developer account settings as prompted
 
-**Note:** The Apple secret (JWT) needs to be regenerated periodically as it expires. Consider using a library or script to generate it automatically.
+Firebase will guide you through the Apple Developer setup process.
 
-### Generating NEXTAUTH_SECRET
-
-Run this command to generate a secure secret:
-```bash
-openssl rand -base64 32
-```
+**Note:** All OAuth providers are configured directly in Firebase Console. No additional environment variables or API keys are needed!
 
 ## Next Steps
 
