@@ -81,7 +81,7 @@ The project uses Tailwind CSS. Customize colors in `tailwind.config.js`.
 4. Import your GitHub repository: `jedcrisp/Average-Dad-Athletics`
 5. **Important:** Add all Firebase environment variables in Vercel's dashboard:
    - Go to **Settings** → **Environment Variables**
-   - Add all 7 `NEXT_PUBLIC_FIREBASE_*` variables (see `VERCEL_SETUP.md` for detailed instructions)
+   - Add all 7 `NEXT_PUBLIC_FIREBASE_*` variables (see `ENV.md` for detailed instructions)
    - Enable for: Production, Preview, and Development
 6. Click "Deploy"
 7. **After deployment:** Redeploy to ensure environment variables are loaded
@@ -90,7 +90,7 @@ The project uses Tailwind CSS. Customize colors in `tailwind.config.js`.
 - Detect Next.js framework
 - Build and deploy your app
 
-**See `VERCEL_SETUP.md` for step-by-step instructions on adding environment variables.**
+**See `ENV.md` for complete environment variables setup guide (local and Vercel).**
 
 ### Other Platforms
 
@@ -157,7 +157,7 @@ Authentication is handled entirely through Firebase. No additional environment v
 6. Add your project's support email
 7. Save
 
-That's it! Firebase handles all OAuth configuration automatically.
+That's it! Firebase handles all sign-in configuration automatically.
 
 ### Setting up Apple Sign In
 
@@ -171,12 +171,12 @@ That's it! Firebase handles all OAuth configuration automatically.
 
 Firebase will guide you through the Apple Developer setup process.
 
-**Note:** All OAuth providers are configured directly in Firebase Console. No additional environment variables or API keys are needed!
+**Note:** All sign-in providers (Google, Apple) are configured directly in Firebase Console. No additional environment variables or API keys are needed!
 
 ## Next Steps
 
 - [x] Implement user authentication for forum
-- [x] Add Google OAuth sign-in
+- [x] Add Google Sign In
 - [x] Add Apple Sign In
 - [x] Set up Firebase (Auth, Firestore, Storage, Analytics)
 - [ ] Connect workouts to Firestore database
