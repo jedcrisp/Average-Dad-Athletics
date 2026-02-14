@@ -51,6 +51,15 @@ export interface WorkoutSubmission {
   verified?: boolean
 }
 
+export interface ForumReply {
+  id: string
+  author: string
+  authorId: string
+  content: string
+  createdAt: Timestamp
+  updatedAt?: Timestamp
+}
+
 export interface ForumPost {
   id?: string
   title: string
@@ -59,8 +68,10 @@ export interface ForumPost {
   date: string
   replies: number
   category: string
+  labels?: string[] // Tags/labels for routing to groups
   excerpt: string
   content?: string
+  repliesList?: ForumReply[]
   createdAt?: Timestamp
   updatedAt?: Timestamp
 }
@@ -205,10 +216,12 @@ export const forumHelpers = {
   async getAll(category?: string): Promise<ForumPost[]> {
     if (!db) throw new Error('Firebase is not configured')
     const postsRef = collection(db, 'forumPosts')
-    let q = query(postsRef, orderBy('date', 'desc'))
+    let q
     
     if (category && category !== 'All') {
-      q = query(postsRef, where('category', '==', category), orderBy('date', 'desc'))
+      q = query(postsRef, where('category', '==', category), orderBy('createdAt', 'desc'))
+    } else {
+      q = query(postsRef, orderBy('createdAt', 'desc'))
     }
     
     const snapshot = await getDocs(q)
@@ -256,5 +269,33 @@ export const forumHelpers = {
     if (!db) throw new Error('Firebase is not configured')
     const docRef = doc(db, 'forumPosts', id)
     await deleteDoc(docRef)
+  },
+
+  // Add a reply to a post
+  async addReply(postId: string, reply: Omit<ForumReply, 'id' | 'createdAt'>): Promise<void> {
+    if (!db) throw new Error('Firebase is not configured')
+    const postRef = doc(db, 'forumPosts', postId)
+    const postSnap = await getDoc(postRef)
+    
+    if (!postSnap.exists()) {
+      throw new Error('Post not found')
+    }
+    
+    const postData = postSnap.data() as ForumPost
+    const existingReplies = postData.repliesList || []
+    
+    const newReply: ForumReply = {
+      id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      ...reply,
+      createdAt: Timestamp.now()
+    }
+    
+    const updatedReplies = [...existingReplies, newReply]
+    
+    await updateDoc(postRef, {
+      repliesList: updatedReplies,
+      replies: updatedReplies.length,
+      updatedAt: Timestamp.now()
+    })
   }
 }

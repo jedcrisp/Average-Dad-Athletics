@@ -32,11 +32,14 @@ service cloud.firestore {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
     
-    // Forum posts - authenticated users can read all, create their own
-    match /forum/{postId} {
+    // Forum posts - authenticated users can read all, create their own, and add replies
+    match /forumPosts/{postId} {
       allow read: if request.auth != null;
-      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
-      allow update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow create: if request.auth != null && request.resource.data.authorId == request.auth.uid;
+      // Allow updates for adding replies (any authenticated user can add replies)
+      allow update: if request.auth != null;
+      // Only post author can delete their own post
+      allow delete: if request.auth != null && request.auth.uid == resource.data.authorId;
     }
     
     // Helper function to check if user is admin
