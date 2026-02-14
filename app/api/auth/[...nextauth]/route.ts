@@ -1,4 +1,4 @@
-import NextAuth from 'next-auth'
+import NextAuth, { type NextAuthOptions } from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
 import GoogleProvider from 'next-auth/providers/google'
 import AppleProvider from 'next-auth/providers/apple'
@@ -6,6 +6,7 @@ import { initializeApp, getApps } from 'firebase/app'
 import { getAuth, signInWithEmailAndPassword } from 'firebase/auth'
 import { getFirestore, doc, getDoc, setDoc } from 'firebase/firestore'
 import { firebaseConfig } from '@/lib/firebase-config'
+import type { User, Account, Profile } from 'next-auth'
 
 // Initialize Firebase
 let app
@@ -18,7 +19,7 @@ if (getApps().length === 0) {
 const auth = getAuth(app)
 const db = getFirestore(app)
 
-export const authOptions = {
+export const authOptions: NextAuthOptions = {
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID || '',
@@ -80,7 +81,7 @@ export const authOptions = {
   },
   secret: process.env.NEXTAUTH_SECRET || 'your-secret-key-change-in-production',
   callbacks: {
-    async signIn({ user, account, profile }) {
+    async signIn({ user, account, profile }: { user: User; account: Account | null; profile?: Profile }) {
       // Save OAuth users to Firestore
       if (account?.provider === 'google' || account?.provider === 'apple') {
         try {
@@ -111,13 +112,13 @@ export const authOptions = {
       }
       return true
     },
-    async jwt({ token, user }) {
+    async jwt({ token, user }: { token: any; user?: User }) {
       if (user) {
         token.id = user.id
       }
       return token
     },
-    async session({ session, token }) {
+    async session({ session, token }: { session: any; token: any }): Promise<any> {
       if (session.user) {
         session.user.id = token.id as string
       }
