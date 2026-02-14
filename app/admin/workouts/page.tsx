@@ -9,7 +9,7 @@ import { isAdmin } from '@/lib/admin-helpers'
 export default function AdminWorkoutsPage() {
   const { user, loading: authLoading } = useAuth()
   const router = useRouter()
-  const [isAdmin, setIsAdmin] = useState(false)
+  const [userIsAdmin, setUserIsAdmin] = useState(false)
   const [checkingAdmin, setCheckingAdmin] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [success, setSuccess] = useState(false)
@@ -31,8 +31,8 @@ export default function AdminWorkoutsPage() {
     const checkAdmin = async () => {
       if (!authLoading && user) {
         try {
-          const userIsAdmin = await isAdmin(user)
-          setIsAdmin(userIsAdmin)
+          const adminStatus = await isAdmin(user)
+          setUserIsAdmin(adminStatus)
         } catch (error) {
           console.error('Error checking admin status:', error)
         } finally {
@@ -116,7 +116,7 @@ export default function AdminWorkoutsPage() {
     )
   }
 
-  if (!isAdmin) {
+  if (!userIsAdmin) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
         <div className="max-w-md w-full bg-white rounded-lg shadow-md p-8 text-center">
