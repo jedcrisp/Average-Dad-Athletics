@@ -14,35 +14,40 @@ let db: Firestore | null = null
 let storage: FirebaseStorage | null = null
 
 if (isFirebaseConfigured()) {
-  if (typeof window !== 'undefined') {
-    // Client-side: Only initialize if not already initialized
-    if (getApps().length === 0) {
-      app = initializeApp(firebaseConfig)
-      // Analytics only works in browser
-      analytics = getAnalytics(app)
+  try {
+    if (typeof window !== 'undefined') {
+      // Client-side: Only initialize if not already initialized
+      if (getApps().length === 0) {
+        app = initializeApp(firebaseConfig)
+        // Analytics only works in browser
+        analytics = getAnalytics(app)
+      } else {
+        app = getApps()[0]
+      }
+      
+      if (app) {
+        auth = getAuth(app)
+        db = getFirestore(app)
+        storage = getStorage(app)
+      }
     } else {
-      app = getApps()[0]
+      // Server-side: create minimal app instance
+      if (getApps().length === 0) {
+        app = initializeApp(firebaseConfig)
+      } else {
+        app = getApps()[0]
+      }
+      
+      // Server-side services will be initialized when needed
+      if (app) {
+        auth = getAuth(app)
+        db = getFirestore(app)
+        storage = getStorage(app)
+      }
     }
-    
-    if (app) {
-      auth = getAuth(app)
-      db = getFirestore(app)
-      storage = getStorage(app)
-    }
-  } else {
-    // Server-side: create minimal app instance
-    if (getApps().length === 0) {
-      app = initializeApp(firebaseConfig)
-    } else {
-      app = getApps()[0]
-    }
-    
-    // Server-side services will be initialized when needed
-    if (app) {
-      auth = getAuth(app)
-      db = getFirestore(app)
-      storage = getStorage(app)
-    }
+  } catch (error) {
+    console.error('Failed to initialize Firebase:', error)
+    console.warn('Firebase is not configured. Please set Firebase environment variables.')
   }
 } else {
   // Firebase not configured - export null values

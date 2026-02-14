@@ -90,12 +90,17 @@ export const firebaseConfig = getFirebaseConfig()
 
 /**
  * Check if Firebase is properly configured
+ * Returns true only if all required config values are non-empty strings
  */
 export function isFirebaseConfigured(): boolean {
   return !!(
     firebaseConfig.apiKey &&
+    firebaseConfig.apiKey.trim() !== '' &&
     firebaseConfig.authDomain &&
+    firebaseConfig.authDomain.trim() !== '' &&
     firebaseConfig.projectId &&
-    firebaseConfig.appId
+    firebaseConfig.projectId.trim() !== '' &&
+    firebaseConfig.appId &&
+    firebaseConfig.appId.trim() !== ''
   )
 }

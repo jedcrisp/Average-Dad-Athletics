@@ -13,13 +13,18 @@ let app: FirebaseApp | null = null
 let analytics: Analytics | null = null
 
 if (isFirebaseConfigured()) {
-  if (getApps().length === 0) {
-    app = initializeApp(firebaseConfig)
-    if (typeof window !== 'undefined') {
-      analytics = getAnalytics(app)
+  try {
+    if (getApps().length === 0) {
+      app = initializeApp(firebaseConfig)
+      if (typeof window !== 'undefined') {
+        analytics = getAnalytics(app)
+      }
+    } else {
+      app = getApps()[0]
     }
-  } else {
-    app = getApps()[0]
+  } catch (error) {
+    console.error('Failed to initialize Firebase:', error)
+    console.warn('Firebase is not configured. Please set Firebase environment variables.')
   }
 } else {
   console.warn('Firebase is not configured. Please set Firebase environment variables.')
