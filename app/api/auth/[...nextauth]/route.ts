@@ -5,19 +5,23 @@ import AppleProvider from 'next-auth/providers/apple'
 import { initializeApp, getApps } from 'firebase/app'
 import { getAuth, signInWithEmailAndPassword } from 'firebase/auth'
 import { getFirestore, doc, getDoc, setDoc } from 'firebase/firestore'
-import { firebaseConfig } from '@/lib/firebase-config'
+import { firebaseConfig, isFirebaseConfigured } from '@/lib/firebase-config'
 import type { User, Account, Profile } from 'next-auth'
 
-// Initialize Firebase
-let app
-if (getApps().length === 0) {
-  app = initializeApp(firebaseConfig)
-} else {
-  app = getApps()[0]
-}
+// Initialize Firebase only if configured
+let app: any = null
+let auth: any = null
+let db: any = null
 
-const auth = getAuth(app)
-const db = getFirestore(app)
+if (isFirebaseConfigured()) {
+  if (getApps().length === 0) {
+    app = initializeApp(firebaseConfig)
+  } else {
+    app = getApps()[0]
+  }
+  auth = getAuth(app)
+  db = getFirestore(app)
+}
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -37,6 +41,11 @@ export const authOptions: NextAuthOptions = {
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
+          return null
+        }
+
+        if (!isFirebaseConfigured() || !auth) {
+          console.error('Firebase is not configured. Cannot authenticate user.')
           return null
         }
 
@@ -83,7 +92,7 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async signIn({ user, account, profile }: { user: User; account: Account | null; profile?: Profile }) {
       // Save OAuth users to Firestore
-      if (account?.provider === 'google' || account?.provider === 'apple') {
+      if ((account?.provider === 'google' || account?.provider === 'apple') && isFirebaseConfigured() && db) {
         try {
           const userRef = doc(db, 'users', user.id)
           const userDoc = await getDoc(userRef)

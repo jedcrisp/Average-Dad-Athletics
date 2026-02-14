@@ -4,42 +4,50 @@ import { getAnalytics, Analytics } from 'firebase/analytics'
 import { getAuth, Auth } from 'firebase/auth'
 import { getFirestore, Firestore } from 'firebase/firestore'
 import { getStorage, FirebaseStorage } from 'firebase/storage'
-import { firebaseConfig } from './firebase-config'
+import { firebaseConfig, isFirebaseConfigured } from './firebase-config'
 
-// Initialize Firebase
-let app: FirebaseApp
+// Initialize Firebase only if configured
+let app: FirebaseApp | null = null
 let analytics: Analytics | null = null
-let auth: Auth
-let db: Firestore
-let storage: FirebaseStorage
+let auth: Auth | null = null
+let db: Firestore | null = null
+let storage: FirebaseStorage | null = null
 
-if (typeof window !== 'undefined') {
-  // Only initialize if not already initialized
-  if (getApps().length === 0) {
-    app = initializeApp(firebaseConfig)
-    // Analytics only works in browser
-    if (typeof window !== 'undefined') {
+if (isFirebaseConfigured()) {
+  if (typeof window !== 'undefined') {
+    // Client-side: Only initialize if not already initialized
+    if (getApps().length === 0) {
+      app = initializeApp(firebaseConfig)
+      // Analytics only works in browser
       analytics = getAnalytics(app)
+    } else {
+      app = getApps()[0]
+    }
+    
+    if (app) {
+      auth = getAuth(app)
+      db = getFirestore(app)
+      storage = getStorage(app)
     }
   } else {
-    app = getApps()[0]
+    // Server-side: create minimal app instance
+    if (getApps().length === 0) {
+      app = initializeApp(firebaseConfig)
+    } else {
+      app = getApps()[0]
+    }
+    
+    // Server-side services will be initialized when needed
+    if (app) {
+      auth = getAuth(app)
+      db = getFirestore(app)
+      storage = getStorage(app)
+    }
   }
-  
-  auth = getAuth(app)
-  db = getFirestore(app)
-  storage = getStorage(app)
 } else {
-  // Server-side: create minimal app instance
-  if (getApps().length === 0) {
-    app = initializeApp(firebaseConfig)
-  } else {
-    app = getApps()[0]
-  }
-  
-  // These will be initialized on the client side
-  auth = {} as Auth
-  db = {} as Firestore
-  storage = {} as FirebaseStorage
+  // Firebase not configured - export null values
+  // Components should check before using
+  console.warn('Firebase is not configured. Please set Firebase environment variables.')
 }
 
 export { app, analytics, auth, db, storage }

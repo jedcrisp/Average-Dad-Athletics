@@ -2,21 +2,32 @@ import { NextResponse } from 'next/server'
 import { initializeApp, getApps } from 'firebase/app'
 import { getAuth, createUserWithEmailAndPassword, updateProfile } from 'firebase/auth'
 import { getFirestore, doc, setDoc } from 'firebase/firestore'
-import { firebaseConfig } from '@/lib/firebase-config'
+import { firebaseConfig, isFirebaseConfigured } from '@/lib/firebase-config'
 
-// Initialize Firebase
-let app
-if (getApps().length === 0) {
-  app = initializeApp(firebaseConfig)
-} else {
-  app = getApps()[0]
+// Initialize Firebase only if configured
+let app: any = null
+let auth: any = null
+let db: any = null
+
+if (isFirebaseConfigured()) {
+  if (getApps().length === 0) {
+    app = initializeApp(firebaseConfig)
+  } else {
+    app = getApps()[0]
+  }
+  auth = getAuth(app)
+  db = getFirestore(app)
 }
-
-const auth = getAuth(app)
-const db = getFirestore(app)
 
 export async function POST(request: Request) {
   try {
+    if (!isFirebaseConfigured()) {
+      return NextResponse.json(
+        { error: 'Firebase is not configured. Please set Firebase environment variables.' },
+        { status: 500 }
+      )
+    }
+
     const { name, email, password } = await request.json()
 
     if (!name || !email || !password) {
