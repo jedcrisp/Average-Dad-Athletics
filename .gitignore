@@ -1,0 +1,63 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+/node_modules
+/.pnp
+.pnp.js
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# local env files - contains sensitive keys and secrets
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env*.local
+*.env
+.envrc
+
+# sensitive configuration files
+config/secrets.json
+secrets.json
+*.key
+*.pem
+*.p12
+*.pfx
+credentials.json
+service-account.json
+firebase-adminsdk-*.json
+
+# Apple/Google OAuth keys
+*.p8
+AuthKey_*.p8
+GoogleService-Info.plist
+
+# API keys and secrets
+**/secrets/**
+**/keys/**
+**/credentials/**
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
