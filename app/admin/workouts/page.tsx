@@ -132,8 +132,7 @@ export default function AdminWorkoutsPage() {
     )
   }
 
-  // Development bypass - only in local dev
-  const [devBypass, setDevBypass] = useState(false)
+  // Check if we're in development (client-side only)
   const isDevelopment = typeof window !== 'undefined' && 
     (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
 
