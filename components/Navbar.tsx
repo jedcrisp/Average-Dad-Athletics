@@ -2,12 +2,12 @@
 
 import Link from 'next/link'
 import { useState } from 'react'
-import { useSession, signOut } from 'next-auth/react'
+import { useAuth } from '@/contexts/AuthContext'
 import { Bars3Icon, XMarkIcon, UserIcon } from '@heroicons/react/24/outline'
 
 export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const { data: session } = useSession()
+  const { user, signOut } = useAuth()
 
   return (
     <nav className="bg-white shadow-lg sticky top-0 z-50">
@@ -31,11 +31,11 @@ export default function Navbar() {
             <Link href="/forum" className="text-gray-700 hover:text-primary-600 font-medium transition-colors">
               Forum
             </Link>
-            {session ? (
+            {user ? (
               <div className="flex items-center gap-4">
                 <span className="text-gray-700 text-sm flex items-center gap-1">
                   <UserIcon className="w-4 h-4" />
-                  {session.user?.name || session.user?.email}
+                  {user.displayName || user.email}
                 </span>
                 <button
                   onClick={() => signOut()}
@@ -100,12 +100,12 @@ export default function Navbar() {
             >
               Forum
             </Link>
-            {session ? (
+            {user ? (
               <>
                 <div className="px-3 py-2 text-gray-700 text-sm border-t mt-2 pt-2">
                   <div className="flex items-center gap-2 mb-2">
                     <UserIcon className="w-4 h-4" />
-                    {session.user?.name || session.user?.email}
+                    {user.displayName || user.email}
                   </div>
                   <button
                     onClick={() => {

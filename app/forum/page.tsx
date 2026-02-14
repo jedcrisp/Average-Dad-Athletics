@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useSession } from 'next-auth/react'
+import { useAuth } from '@/contexts/AuthContext'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ChatBubbleLeftRightIcon, UserIcon, ClockIcon } from '@heroicons/react/24/outline'
@@ -50,12 +50,12 @@ const posts: Post[] = [
 const categories = ['All', 'Getting Started', 'Equipment', 'Motivation', 'Nutrition', 'Progress']
 
 export default function ForumPage() {
-  const { data: session } = useSession()
+  const { user } = useAuth()
   const router = useRouter()
   const [selectedCategory, setSelectedCategory] = useState<string>('All')
 
   const handleCreatePost = () => {
-    if (session) {
+    if (user) {
       // In a real app, this would open a modal or navigate to a create post page
       alert('Create post functionality coming soon!')
     } else {
@@ -99,7 +99,7 @@ export default function ForumPage() {
 
         {/* Create Post Button */}
         <div className="mb-8 text-center">
-          {session ? (
+          {user ? (
             <button
               onClick={handleCreatePost}
               className="bg-primary-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-primary-700 transition-colors flex items-center gap-2 mx-auto"

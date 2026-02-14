@@ -52,6 +52,7 @@ export interface ForumPost {
 export const workoutHelpers = {
   // Get all workouts, sorted by date (newest first)
   async getAll(): Promise<Workout[]> {
+    if (!db) throw new Error('Firebase is not configured')
     const workoutsRef = collection(db, 'workouts')
     const q = query(workoutsRef, orderBy('date', 'desc'))
     const snapshot = await getDocs(q)
@@ -63,6 +64,7 @@ export const workoutHelpers = {
 
   // Get a single workout by ID
   async getById(id: string): Promise<Workout | null> {
+    if (!db) throw new Error('Firebase is not configured')
     const docRef = doc(db, 'workouts', id)
     const docSnap = await getDoc(docRef)
     if (docSnap.exists()) {
@@ -73,6 +75,7 @@ export const workoutHelpers = {
 
   // Add a new workout
   async create(workout: Omit<Workout, 'id'>): Promise<string> {
+    if (!db) throw new Error('Firebase is not configured')
     const workoutsRef = collection(db, 'workouts')
     const docRef = await addDoc(workoutsRef, {
       ...workout,
@@ -84,6 +87,7 @@ export const workoutHelpers = {
 
   // Update a workout
   async update(id: string, workout: Partial<Workout>): Promise<void> {
+    if (!db) throw new Error('Firebase is not configured')
     const docRef = doc(db, 'workouts', id)
     await updateDoc(docRef, {
       ...workout,
@@ -93,6 +97,7 @@ export const workoutHelpers = {
 
   // Delete a workout
   async delete(id: string): Promise<void> {
+    if (!db) throw new Error('Firebase is not configured')
     const docRef = doc(db, 'workouts', id)
     await deleteDoc(docRef)
   }
@@ -102,6 +107,7 @@ export const workoutHelpers = {
 export const forumHelpers = {
   // Get all posts, optionally filtered by category
   async getAll(category?: string): Promise<ForumPost[]> {
+    if (!db) throw new Error('Firebase is not configured')
     const postsRef = collection(db, 'forumPosts')
     let q = query(postsRef, orderBy('date', 'desc'))
     
@@ -118,6 +124,7 @@ export const forumHelpers = {
 
   // Get a single post by ID
   async getById(id: string): Promise<ForumPost | null> {
+    if (!db) throw new Error('Firebase is not configured')
     const docRef = doc(db, 'forumPosts', id)
     const docSnap = await getDoc(docRef)
     if (docSnap.exists()) {
@@ -128,6 +135,7 @@ export const forumHelpers = {
 
   // Create a new post
   async create(post: Omit<ForumPost, 'id'>): Promise<string> {
+    if (!db) throw new Error('Firebase is not configured')
     const postsRef = collection(db, 'forumPosts')
     const docRef = await addDoc(postsRef, {
       ...post,
@@ -139,6 +147,7 @@ export const forumHelpers = {
 
   // Update a post
   async update(id: string, post: Partial<ForumPost>): Promise<void> {
+    if (!db) throw new Error('Firebase is not configured')
     const docRef = doc(db, 'forumPosts', id)
     await updateDoc(docRef, {
       ...post,
@@ -148,6 +157,7 @@ export const forumHelpers = {
 
   // Delete a post
   async delete(id: string): Promise<void> {
+    if (!db) throw new Error('Firebase is not configured')
     const docRef = doc(db, 'forumPosts', id)
     await deleteDoc(docRef)
   }

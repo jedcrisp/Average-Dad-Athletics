@@ -1,13 +1,14 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { signIn } from 'next-auth/react'
+import { useState, useEffect, Suspense } from 'react'
+import { useAuth } from '@/contexts/AuthContext'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const { signIn, signInWithGoogle, signInWithApple } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -26,23 +27,39 @@ export default function LoginPage() {
     setLoading(true)
 
     try {
-      const result = await signIn('credentials', {
-        email,
-        password,
-        redirect: false,
-      })
-
-      if (result?.error) {
+      await signIn(email, password)
+      const redirect = searchParams.get('redirect') || '/forum'
+      router.push(redirect)
+    } catch (err: any) {
+      if (err.code === 'auth/invalid-credential' || err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') {
         setError('Invalid email or password')
+      } else if (err.code === 'auth/invalid-email') {
+        setError('Invalid email address')
       } else {
-        const redirect = searchParams.get('redirect') || '/forum'
-        router.push(redirect)
-        router.refresh()
+        setError('Something went wrong. Please try again.')
       }
-    } catch (err) {
-      setError('Something went wrong. Please try again.')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleGoogleSignIn = async () => {
+    try {
+      await signInWithGoogle()
+      const redirect = searchParams.get('redirect') || '/forum'
+      router.push(redirect)
+    } catch (err: any) {
+      setError('Failed to sign in with Google. Please try again.')
+    }
+  }
+
+  const handleAppleSignIn = async () => {
+    try {
+      await signInWithApple()
+      const redirect = searchParams.get('redirect') || '/forum'
+      router.push(redirect)
+    } catch (err: any) {
+      setError('Failed to sign in with Apple. Please try again.')
     }
   }
 
@@ -130,7 +147,7 @@ export default function LoginPage() {
           <div className="mt-6 space-y-3">
             <button
               type="button"
-              onClick={() => signIn('google', { callbackUrl: searchParams.get('redirect') || '/forum' })}
+              onClick={handleGoogleSignIn}
               className="w-full inline-flex justify-center items-center gap-3 py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
             >
               <svg className="w-5 h-5" viewBox="0 0 24 24">
@@ -155,7 +172,7 @@ export default function LoginPage() {
             </button>
             <button
               type="button"
-              onClick={() => signIn('apple', { callbackUrl: searchParams.get('redirect') || '/forum' })}
+              onClick={handleAppleSignIn}
               className="w-full inline-flex justify-center items-center gap-3 py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-black text-sm font-medium text-white hover:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
             >
               <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
@@ -172,5 +189,20 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    }>
+      <LoginForm />
+    </Suspense>
   )
 }

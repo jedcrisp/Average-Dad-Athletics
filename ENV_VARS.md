@@ -16,36 +16,20 @@ NEXT_PUBLIC_FIREBASE_APP_ID=your-app-id
 NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID=your-measurement-id
 ```
 
-### NextAuth.js Configuration (2 variables)
-```
-NEXTAUTH_SECRET=your-nextauth-secret-key
-NEXTAUTH_URL=http://localhost:3000
-```
-
-**Generate NEXTAUTH_SECRET:**
-```bash
-openssl rand -base64 32
-```
-
-**Note:** For production, `NEXTAUTH_URL` should be your production domain (e.g., `https://yourdomain.com`)
+**Note:** All Firebase variables must start with `NEXT_PUBLIC_` to be accessible in the browser.
 
 ---
 
-## 🟡 OPTIONAL (Only if using these features)
+## 🟡 OPTIONAL (Configure in Firebase Console)
 
-### Google OAuth (2 variables)
-Only needed if you want Google Sign In to work:
-```
-GOOGLE_CLIENT_ID=your-google-client-id
-GOOGLE_CLIENT_SECRET=your-google-client-secret
-```
+### Google Sign In
+- Enable in Firebase Console > Authentication > Sign-in method > Google
+- No additional environment variables needed - Firebase handles OAuth automatically!
 
-### Apple Sign In (2 variables)
-Only needed if you want Apple Sign In to work:
-```
-APPLE_ID=your-apple-service-id
-APPLE_SECRET=your-apple-private-key-jwt
-```
+### Apple Sign In
+- Enable in Firebase Console > Authentication > Sign-in method > Apple
+- Configure your Apple Developer account settings
+- No additional environment variables needed - Firebase handles OAuth automatically!
 
 ---
 
@@ -56,20 +40,22 @@ APPLE_SECRET=your-apple-private-key-jwt
    cp env.example .env.local
    ```
 
-2. **Fill in your values:**
+2. **Fill in your Firebase values:**
    - Get Firebase config from [Firebase Console](https://console.firebase.google.com/)
-   - Generate `NEXTAUTH_SECRET` with: `openssl rand -base64 32`
-   - Add OAuth credentials if using Google/Apple sign in
+   - Copy all 7 `NEXT_PUBLIC_FIREBASE_*` variables to your `.env.local` file
 
-3. **For Vercel/Production:**
-   - Add all these variables in your hosting platform's environment variables settings
-   - Update `NEXTAUTH_URL` to your production domain
+3. **Enable OAuth providers (optional):**
+   - Go to Firebase Console > Authentication > Sign-in method
+   - Enable Google and/or Apple Sign In
+   - Follow the setup instructions in Firebase Console
+
+4. **For Vercel/Production:**
+   - Add all Firebase environment variables in your hosting platform's settings
+   - Make sure all variables start with `NEXT_PUBLIC_`
 
 ---
 
 ## Summary
 
-**Minimum required:** 9 variables (7 Firebase + 2 NextAuth)
-**With Google OAuth:** +2 variables = 11 total
-**With Apple Sign In:** +2 variables = 13 total
-**With both OAuth:** +4 variables = 13 total
+**Minimum required:** 7 variables (Firebase configuration only)
+**OAuth providers:** Configured in Firebase Console, no additional env vars needed!

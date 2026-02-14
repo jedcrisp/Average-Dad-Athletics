@@ -1,12 +1,13 @@
 'use client'
 
 import { useState } from 'react'
-import { signIn } from 'next-auth/react'
+import { useAuth } from '@/contexts/AuthContext'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
 export default function RegisterPage() {
   const router = useRouter()
+  const { register, signInWithGoogle, signInWithApple } = useAuth()
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -19,24 +20,38 @@ export default function RegisterPage() {
     setLoading(true)
 
     try {
-      // In a real app, you'd call your API to register the user
-      // For now, this is a placeholder that shows the flow
-      const response = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, password }),
-      })
-
-      if (response.ok) {
-        router.push('/login?registered=true')
+      await register(name, email, password)
+      router.push('/forum')
+    } catch (err: any) {
+      if (err.code === 'auth/email-already-in-use') {
+        setError('This email is already registered. Please sign in instead.')
+      } else if (err.code === 'auth/invalid-email') {
+        setError('Invalid email address.')
+      } else if (err.code === 'auth/weak-password') {
+        setError('Password is too weak. Please use a stronger password.')
       } else {
-        const data = await response.json()
-        setError(data.error || 'Registration failed. Please try again.')
+        setError('Registration failed. Please try again.')
       }
-    } catch (err) {
-      setError('Something went wrong. Please try again.')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleGoogleSignIn = async () => {
+    try {
+      await signInWithGoogle()
+      router.push('/forum')
+    } catch (err: any) {
+      setError('Failed to sign in with Google. Please try again.')
+    }
+  }
+
+  const handleAppleSignIn = async () => {
+    try {
+      await signInWithApple()
+      router.push('/forum')
+    } catch (err: any) {
+      setError('Failed to sign in with Apple. Please try again.')
     }
   }
 
@@ -134,7 +149,7 @@ export default function RegisterPage() {
           <div className="mt-6 space-y-3">
             <button
               type="button"
-              onClick={() => signIn('google', { callbackUrl: '/forum' })}
+              onClick={handleGoogleSignIn}
               className="w-full inline-flex justify-center items-center gap-3 py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
             >
               <svg className="w-5 h-5" viewBox="0 0 24 24">
@@ -159,7 +174,7 @@ export default function RegisterPage() {
             </button>
             <button
               type="button"
-              onClick={() => signIn('apple', { callbackUrl: '/forum' })}
+              onClick={handleAppleSignIn}
               className="w-full inline-flex justify-center items-center gap-3 py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-black text-sm font-medium text-white hover:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
             >
               <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
