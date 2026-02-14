@@ -76,32 +76,54 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!auth) {
       throw new Error('Firebase Auth is not configured')
     }
-    const provider = new GoogleAuthProvider()
-    const result = await signInWithPopup(auth, provider)
     
-    // Save user to Firestore
-    if (db && result.user) {
-      try {
-        const userRef = doc(db, 'users', result.user.uid)
-        const userDoc = await getDoc(userRef)
-        
-        if (!userDoc.exists()) {
-          await setDoc(userRef, {
-            name: result.user.displayName || 'User',
-            email: result.user.email,
-            provider: 'google',
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          })
-        } else {
-          await setDoc(userRef, {
-            name: result.user.displayName || userDoc.data()?.name,
-            email: result.user.email,
-            updatedAt: new Date().toISOString(),
-          }, { merge: true })
+    try {
+      const provider = new GoogleAuthProvider()
+      // Add custom parameters if needed
+      provider.setCustomParameters({
+        prompt: 'select_account'
+      })
+      
+      const result = await signInWithPopup(auth, provider)
+      
+      // Save user to Firestore
+      if (db && result.user) {
+        try {
+          const userRef = doc(db, 'users', result.user.uid)
+          const userDoc = await getDoc(userRef)
+          
+          if (!userDoc.exists()) {
+            await setDoc(userRef, {
+              name: result.user.displayName || 'User',
+              email: result.user.email,
+              provider: 'google',
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+            })
+          } else {
+            await setDoc(userRef, {
+              name: result.user.displayName || userDoc.data()?.name,
+              email: result.user.email,
+              updatedAt: new Date().toISOString(),
+            }, { merge: true })
+          }
+        } catch (error) {
+          console.error('Error saving user to Firestore:', error)
         }
-      } catch (error) {
-        console.error('Error saving user to Firestore:', error)
+      }
+    } catch (error: any) {
+      // Handle specific Firebase Auth errors
+      if (error.code === 'auth/popup-closed-by-user') {
+        throw new Error('Sign-in popup was closed. Please try again.')
+      } else if (error.code === 'auth/popup-blocked') {
+        throw new Error('Popup was blocked by your browser. Please allow popups for this site.')
+      } else if (error.code === 'auth/cancelled-popup-request') {
+        throw new Error('Another sign-in attempt is already in progress. Please wait.')
+      } else if (error.code === 'auth/network-request-failed') {
+        throw new Error('Network error. Please check your connection and try again.')
+      } else {
+        console.error('Google sign-in error:', error)
+        throw new Error('Failed to sign in with Google. Please try again.')
       }
     }
   }
@@ -110,32 +132,49 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!auth) {
       throw new Error('Firebase Auth is not configured')
     }
-    const provider = new OAuthProvider('apple.com')
-    const result = await signInWithPopup(auth, provider)
     
-    // Save user to Firestore
-    if (db && result.user) {
-      try {
-        const userRef = doc(db, 'users', result.user.uid)
-        const userDoc = await getDoc(userRef)
-        
-        if (!userDoc.exists()) {
-          await setDoc(userRef, {
-            name: result.user.displayName || 'User',
-            email: result.user.email,
-            provider: 'apple',
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          })
-        } else {
-          await setDoc(userRef, {
-            name: result.user.displayName || userDoc.data()?.name,
-            email: result.user.email,
-            updatedAt: new Date().toISOString(),
-          }, { merge: true })
+    try {
+      const provider = new OAuthProvider('apple.com')
+      const result = await signInWithPopup(auth, provider)
+      
+      // Save user to Firestore
+      if (db && result.user) {
+        try {
+          const userRef = doc(db, 'users', result.user.uid)
+          const userDoc = await getDoc(userRef)
+          
+          if (!userDoc.exists()) {
+            await setDoc(userRef, {
+              name: result.user.displayName || 'User',
+              email: result.user.email,
+              provider: 'apple',
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+            })
+          } else {
+            await setDoc(userRef, {
+              name: result.user.displayName || userDoc.data()?.name,
+              email: result.user.email,
+              updatedAt: new Date().toISOString(),
+            }, { merge: true })
+          }
+        } catch (error) {
+          console.error('Error saving user to Firestore:', error)
         }
-      } catch (error) {
-        console.error('Error saving user to Firestore:', error)
+      }
+    } catch (error: any) {
+      // Handle specific Firebase Auth errors
+      if (error.code === 'auth/popup-closed-by-user') {
+        throw new Error('Sign-in popup was closed. Please try again.')
+      } else if (error.code === 'auth/popup-blocked') {
+        throw new Error('Popup was blocked by your browser. Please allow popups for this site.')
+      } else if (error.code === 'auth/cancelled-popup-request') {
+        throw new Error('Another sign-in attempt is already in progress. Please wait.')
+      } else if (error.code === 'auth/network-request-failed') {
+        throw new Error('Network error. Please check your connection and try again.')
+      } else {
+        console.error('Apple sign-in error:', error)
+        throw new Error('Failed to sign in with Apple. Please try again.')
       }
     }
   }

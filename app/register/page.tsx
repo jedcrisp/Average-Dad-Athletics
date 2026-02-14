@@ -13,6 +13,8 @@ export default function RegisterPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [googleLoading, setGoogleLoading] = useState(false)
+  const [appleLoading, setAppleLoading] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -38,20 +40,34 @@ export default function RegisterPage() {
   }
 
   const handleGoogleSignIn = async () => {
+    if (googleLoading) return // Prevent multiple clicks
+    
+    setError('')
+    setGoogleLoading(true)
+    
     try {
       await signInWithGoogle()
       router.push('/forum')
     } catch (err: any) {
-      setError('Failed to sign in with Google. Please try again.')
+      setError(err.message || 'Failed to sign in with Google. Please try again.')
+    } finally {
+      setGoogleLoading(false)
     }
   }
 
   const handleAppleSignIn = async () => {
+    if (appleLoading) return // Prevent multiple clicks
+    
+    setError('')
+    setAppleLoading(true)
+    
     try {
       await signInWithApple()
       router.push('/forum')
     } catch (err: any) {
-      setError('Failed to sign in with Apple. Please try again.')
+      setError(err.message || 'Failed to sign in with Apple. Please try again.')
+    } finally {
+      setAppleLoading(false)
     }
   }
 
@@ -150,7 +166,8 @@ export default function RegisterPage() {
             <button
               type="button"
               onClick={handleGoogleSignIn}
-              className="w-full inline-flex justify-center items-center gap-3 py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+              disabled={googleLoading || appleLoading || loading}
+              className="w-full inline-flex justify-center items-center gap-3 py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <svg className="w-5 h-5" viewBox="0 0 24 24">
                 <path
@@ -170,17 +187,18 @@ export default function RegisterPage() {
                   d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
                 />
               </svg>
-              Sign up with Google
+              {googleLoading ? 'Signing up...' : 'Sign up with Google'}
             </button>
             <button
               type="button"
               onClick={handleAppleSignIn}
-              className="w-full inline-flex justify-center items-center gap-3 py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-black text-sm font-medium text-white hover:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+              disabled={googleLoading || appleLoading || loading}
+              className="w-full inline-flex justify-center items-center gap-3 py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-black text-sm font-medium text-white hover:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09l.01-.01zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/>
               </svg>
-              Sign up with Apple
+              {appleLoading ? 'Signing up...' : 'Sign up with Apple'}
             </button>
           </div>
         </div>
