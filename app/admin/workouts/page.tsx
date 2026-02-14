@@ -137,10 +137,6 @@ export default function AdminWorkoutsPage() {
   const isDevelopment = typeof window !== 'undefined' && 
     (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
 
-  // Check if we're in development (client-side only)
-  const isDevelopment = typeof window !== 'undefined' && 
-    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-
   if (!userIsAdmin && !devBypass) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
