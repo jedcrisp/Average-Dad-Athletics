@@ -27,7 +27,6 @@ export const authOptions = {
     AppleProvider({
       clientId: process.env.APPLE_ID || '',
       clientSecret: process.env.APPLE_SECRET || '',
-      teamId: process.env.APPLE_TEAM_ID || '',
     }),
     CredentialsProvider({
       name: 'Credentials',

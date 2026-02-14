@@ -75,9 +75,24 @@ The project uses Tailwind CSS. Customize colors in `tailwind.config.js`.
 
 ### Vercel (Recommended)
 
-1. Push your code to GitHub
-2. Import your repository on [Vercel](https://vercel.com)
-3. Deploy!
+1. Push your code to GitHub (already done!)
+2. Go to [Vercel](https://vercel.com) and sign in
+3. Click "Add New Project"
+4. Import your GitHub repository: `jedcrisp/Average-Dad-Athletics`
+5. **Important:** Add all environment variables in Vercel's dashboard:
+   - All `NEXT_PUBLIC_FIREBASE_*` variables
+   - `NEXTAUTH_SECRET` (generate with: `openssl rand -base64 32`)
+   - `NEXTAUTH_URL` (will be auto-set to your Vercel domain, but you can override)
+   - `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` (if using Google OAuth)
+   - `APPLE_ID` and `APPLE_SECRET` (if using Apple Sign In)
+6. Click "Deploy"
+
+**Note:** Vercel will automatically:
+- Detect Next.js framework
+- Set `NEXTAUTH_URL` to your deployment URL
+- Build and deploy your app
+
+After deployment, update your OAuth redirect URIs to include your Vercel domain.
 
 ### Other Platforms
 
@@ -148,7 +163,7 @@ GOOGLE_CLIENT_SECRET=your-google-client-secret
 # Apple OAuth (optional but recommended)
 APPLE_ID=your-apple-service-id
 APPLE_SECRET=your-apple-private-key-jwt
-APPLE_TEAM_ID=your-apple-team-id
+# Note: APPLE_TEAM_ID should be included in the JWT secret, not as a separate variable
 ```
 
 ### Setting up Google OAuth
@@ -184,8 +199,7 @@ APPLE_TEAM_ID=your-apple-team-id
    - Sign with your `.p8` private key
 6. Add to `.env.local`:
    - `APPLE_ID` = Your Services ID
-   - `APPLE_SECRET` = The JWT you generated
-   - `APPLE_TEAM_ID` = Your Team ID
+   - `APPLE_SECRET` = The JWT you generated (must include your Team ID in the JWT payload)
 
 **Note:** The Apple secret (JWT) needs to be regenerated periodically as it expires. Consider using a library or script to generate it automatically.
 
