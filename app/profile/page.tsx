@@ -12,9 +12,14 @@ export default function ProfilePage() {
   const router = useRouter()
   const [userData, setUserData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
-    if (!authLoading) {
+    setMounted(true)
+  }, [])
+
+  useEffect(() => {
+    if (!authLoading && mounted) {
       if (!user) {
         router.push('/login')
         return
@@ -28,8 +33,13 @@ export default function ProfilePage() {
             if (userDoc.exists()) {
               setUserData(userDoc.data())
             }
-          } catch (error) {
-            console.error('Error fetching user data:', error)
+          } catch (error: any) {
+            // Handle permission errors gracefully
+            if (error?.code === 'permission-denied') {
+              console.warn('Permission denied reading user data. Check Firestore security rules.')
+            } else {
+              console.error('Error fetching user data:', error)
+            }
           } finally {
             setLoading(false)
           }
@@ -40,9 +50,10 @@ export default function ProfilePage() {
       
       fetchUserData()
     }
-  }, [user, authLoading, router])
+  }, [user, authLoading, router, mounted])
 
-  if (authLoading || loading) {
+  // Prevent hydration mismatch by not rendering until mounted
+  if (!mounted || authLoading || loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -61,6 +72,20 @@ export default function ProfilePage() {
   const email = user.email || userData?.email || 'No email'
   const createdAt = userData?.createdAt || user.metadata.creationTime
   const provider = userData?.provider || (user.providerData[0]?.providerId === 'google.com' ? 'Google' : user.providerData[0]?.providerId === 'apple.com' ? 'Apple' : 'Email')
+  
+  // Format date consistently to avoid hydration issues
+  const formattedDate = createdAt ? (() => {
+    try {
+      const date = new Date(createdAt)
+      return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      })
+    } catch {
+      return null
+    }
+  })() : null
 
   return (
     <div className="min-h-screen bg-gray-50 py-12">
@@ -112,18 +137,12 @@ export default function ProfilePage() {
                     </div>
                   </div>
 
-                  {createdAt && (
+                  {formattedDate && (
                     <div className="flex items-start gap-4">
                       <CalendarIcon className="w-5 h-5 text-gray-400 mt-0.5" />
                       <div>
                         <p className="text-sm text-gray-500">Member Since</p>
-                        <p className="text-gray-900 font-medium">
-                          {new Date(createdAt).toLocaleDateString('en-US', {
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric'
-                          })}
-                        </p>
+                        <p className="text-gray-900 font-medium">{formattedDate}</p>
                       </div>
                     </div>
                   )}

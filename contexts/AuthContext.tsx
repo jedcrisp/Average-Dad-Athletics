@@ -70,6 +70,12 @@ async function saveUserToFirestore(user: User, provider?: string, name?: string)
       // Firestore will automatically retry when online if persistence is enabled
       return
     }
+    // Handle permission errors gracefully
+    if (error?.code === 'permission-denied' || error?.message?.includes('Missing or insufficient permissions')) {
+      console.warn('Firestore permission denied. Please configure Firestore security rules to allow users to write their own data.')
+      // Sign-in should still succeed even if Firestore write fails
+      return
+    }
     // Log other errors but don't throw - sign-in should still succeed
     console.error('Error saving user to Firestore:', error)
   }
