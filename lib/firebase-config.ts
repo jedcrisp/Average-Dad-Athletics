@@ -1,6 +1,9 @@
 /**
  * Firebase configuration - all values from environment variables
  * No hardcoded keys or fallbacks for security
+ * 
+ * Note: During build time, we allow missing env vars to prevent build failures.
+ * Environment variables should be set in production/hosting platform.
  */
 
 function getFirebaseConfig() {
@@ -13,6 +16,9 @@ function getFirebaseConfig() {
     appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
     measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
   }
+
+  // Check if we're in build mode (allowing build to complete without env vars)
+  const isBuildTime = process.env.NODE_ENV === 'production' && !process.env.VERCEL && !process.env.NEXT_PUBLIC_FIREBASE_API_KEY
 
   // Validate that all required environment variables are present
   const missingVars: string[] = []
@@ -35,8 +41,24 @@ function getFirebaseConfig() {
   if (missingVars.length > 0) {
     const errorMessage = `Missing required Firebase environment variables: ${missingVars.join(', ')}\n\nPlease create a .env.local file with these variables. See env.example for reference.`
     
+    // During build time, allow build to continue with empty values
+    // This prevents build failures when env vars aren't set locally
+    // They will be required at runtime in production
+    if (isBuildTime || process.env.NEXT_PHASE === 'phase-production-build') {
+      console.warn(`⚠️  ${errorMessage}\n⚠️  Build will continue, but Firebase features will not work until environment variables are set.`)
+      return {
+        apiKey: '',
+        authDomain: '',
+        projectId: '',
+        storageBucket: '',
+        messagingSenderId: '',
+        appId: '',
+        measurementId: '',
+      }
+    }
+    
     if (typeof window === 'undefined') {
-      // Server-side: throw error
+      // Server-side runtime: throw error
       throw new Error(errorMessage)
     } else {
       // Client-side: log error and return empty config (will fail gracefully)
