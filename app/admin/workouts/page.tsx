@@ -28,6 +28,8 @@ export default function AdminWorkoutsPage() {
   const [competitionMetric, setCompetitionMetric] = useState('')
   const [competitionUnit, setCompetitionUnit] = useState('')
   const [competitionSort, setCompetitionSort] = useState<'asc' | 'desc'>('desc')
+  // Development bypass - only in local dev
+  const [devBypass, setDevBypass] = useState(false)
 
   useEffect(() => {
     const checkAdmin = async () => {
@@ -132,6 +134,10 @@ export default function AdminWorkoutsPage() {
 
   // Development bypass - only in local dev
   const [devBypass, setDevBypass] = useState(false)
+  const isDevelopment = typeof window !== 'undefined' && 
+    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+
+  // Check if we're in development (client-side only)
   const isDevelopment = typeof window !== 'undefined' && 
     (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
 

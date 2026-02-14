@@ -5,14 +5,15 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useRouter } from 'next/navigation'
 import { doc, getDoc } from 'firebase/firestore'
 import { db } from '@/lib/firebase-client'
-import { UserIcon, EnvelopeIcon, CalendarIcon } from '@heroicons/react/24/outline'
+import { UserIcon, EnvelopeIcon, CalendarIcon, ArrowRightOnRectangleIcon } from '@heroicons/react/24/outline'
 
 export default function ProfilePage() {
-  const { user, loading: authLoading } = useAuth()
+  const { user, loading: authLoading, signOut } = useAuth()
   const router = useRouter()
   const [userData, setUserData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [mounted, setMounted] = useState(false)
+  const [signingOut, setSigningOut] = useState(false)
 
   useEffect(() => {
     setMounted(true)
@@ -168,6 +169,28 @@ export default function ProfilePage() {
                     <p className="text-sm text-primary-700 mt-1">Check out the workout library</p>
                   </a>
                 </div>
+              </div>
+
+              {/* Sign Out */}
+              <div className="pt-6 border-t">
+                <button
+                  onClick={async () => {
+                    setSigningOut(true)
+                    try {
+                      await signOut()
+                      router.push('/')
+                    } catch (error) {
+                      console.error('Error signing out:', error)
+                    } finally {
+                      setSigningOut(false)
+                    }
+                  }}
+                  disabled={signingOut}
+                  className="w-full md:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <ArrowRightOnRectangleIcon className="w-5 h-5" />
+                  {signingOut ? 'Signing Out...' : 'Sign Out'}
+                </button>
               </div>
             </div>
           </div>

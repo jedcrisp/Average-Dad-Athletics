@@ -56,21 +56,13 @@ export default function Navbar() {
               </Link>
             )}
             {user ? (
-              <div className="flex flex-col items-end">
-                <Link
-                  href="/profile"
-                  className="text-gray-700 text-sm flex items-center gap-1 hover:text-primary-600 transition-colors"
-                >
-                  <UserIcon className="w-4 h-4" />
-                  {user.displayName || user.email}
-                </Link>
-                <button
-                  onClick={() => signOut()}
-                  className="text-gray-600 text-xs hover:text-primary-600 transition-colors mt-1"
-                >
-                  Sign Out
-                </button>
-              </div>
+              <Link
+                href="/profile"
+                className="text-gray-700 text-sm flex items-center gap-1 hover:text-primary-600 transition-colors"
+              >
+                <UserIcon className="w-4 h-4" />
+                {user.displayName || user.email}
+              </Link>
             ) : (
               <Link
                 href="/login"
@@ -146,27 +138,16 @@ export default function Navbar() {
               </Link>
             )}
             {user ? (
-              <>
-                <div className="px-3 py-2 text-gray-700 text-sm border-t mt-2 pt-2">
-                  <Link
-                    href="/profile"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="flex items-center gap-2 mb-2 hover:text-primary-600 transition-colors"
-                  >
-                    <UserIcon className="w-4 h-4" />
-                    {user.displayName || user.email}
-                  </Link>
-                  <button
-                    onClick={() => {
-                      signOut()
-                      setMobileMenuOpen(false)
-                    }}
-                    className="text-gray-700 hover:text-primary-600 font-medium transition-colors"
-                  >
-                    Sign Out
-                  </button>
+              <Link
+                href="/profile"
+                className="block px-3 py-2 text-gray-700 hover:bg-primary-50 rounded-md border-t mt-2 pt-2"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                <div className="flex items-center gap-2">
+                  <UserIcon className="w-4 h-4" />
+                  {user.displayName || user.email}
                 </div>
-              </>
+              </Link>
             ) : (
               <Link
                 href="/login"
