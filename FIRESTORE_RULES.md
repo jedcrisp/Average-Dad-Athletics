@@ -45,6 +45,13 @@ service cloud.firestore {
       allow write: if false; // Only admins can write (configure later)
     }
     
+    // Workout submissions - users can read all, create/update their own
+    match /workoutSubmissions/{submissionId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
+    }
+    
     // Default: deny all other access
     match /{document=**} {
       allow read, write: if false;
@@ -63,6 +70,7 @@ service cloud.firestore {
 - **Users collection**: Users can only read/write their own document (matching their `uid`)
 - **Forum collection**: Users can read all posts, create posts, and edit/delete their own posts
 - **Workouts collection**: Users can read workouts, but only admins can write (you can configure admin access later)
+- **Workout submissions collection**: Users can read all submissions, create their own, and update/delete their own submissions
 - **Everything else**: Denied by default for security
 
 ## Testing

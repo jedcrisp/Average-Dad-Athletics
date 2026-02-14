@@ -30,8 +30,25 @@ export interface Workout {
   duration: string
   exercises: string[]
   description: string
+  // Competition fields
+  competitionType?: 'time' | 'weight' | 'reps' | 'distance' | 'none'
+  competitionMetric?: string // e.g., "Fastest Time", "Max Weight"
+  competitionUnit?: string // e.g., "seconds", "lbs", "reps"
+  competitionSort?: 'asc' | 'desc' // 'asc' for time (lower better), 'desc' for weight/reps (higher better)
   createdAt?: Timestamp
   updatedAt?: Timestamp
+}
+
+export interface WorkoutSubmission {
+  id?: string
+  workoutId: string
+  userId: string
+  userName: string
+  userEmail?: string
+  metricValue: number
+  unit: string
+  submittedAt?: Timestamp
+  verified?: boolean
 }
 
 export interface ForumPost {
@@ -99,6 +116,85 @@ export const workoutHelpers = {
   async delete(id: string): Promise<void> {
     if (!db) throw new Error('Firebase is not configured')
     const docRef = doc(db, 'workouts', id)
+    await deleteDoc(docRef)
+  }
+}
+
+// Workout submission helpers
+export const submissionHelpers = {
+  // Get all submissions for a workout, sorted by metric value
+  async getByWorkout(workoutId: string, sortOrder: 'asc' | 'desc' = 'desc'): Promise<WorkoutSubmission[]> {
+    if (!db) throw new Error('Firebase is not configured')
+    const submissionsRef = collection(db, 'workoutSubmissions')
+    const q = query(
+      submissionsRef,
+      where('workoutId', '==', workoutId),
+      orderBy('metricValue', sortOrder),
+      orderBy('submittedAt', 'asc') // Tie-breaker: earlier submission wins
+    )
+    const snapshot = await getDocs(q)
+    return snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    } as WorkoutSubmission))
+  },
+
+  // Get top N submissions for a workout
+  async getTopN(workoutId: string, limit: number = 10, sortOrder: 'asc' | 'desc' = 'desc'): Promise<WorkoutSubmission[]> {
+    const all = await this.getByWorkout(workoutId, sortOrder)
+    return all.slice(0, limit)
+  },
+
+  // Get user's submission for a workout
+  async getByUser(workoutId: string, userId: string): Promise<WorkoutSubmission | null> {
+    if (!db) throw new Error('Firebase is not configured')
+    const submissionsRef = collection(db, 'workoutSubmissions')
+    const q = query(
+      submissionsRef,
+      where('workoutId', '==', workoutId),
+      where('userId', '==', userId)
+    )
+    const snapshot = await getDocs(q)
+    if (snapshot.empty) return null
+    return {
+      id: snapshot.docs[0].id,
+      ...snapshot.docs[0].data()
+    } as WorkoutSubmission
+  },
+
+  // Create or update a submission
+  async submit(submission: Omit<WorkoutSubmission, 'id'>): Promise<string> {
+    if (!db) throw new Error('Firebase is not configured')
+    
+    // Check if user already has a submission
+    const existing = await this.getByUser(submission.workoutId, submission.userId)
+    
+    if (existing && existing.id) {
+      // Update existing submission
+      const docRef = doc(db, 'workoutSubmissions', existing.id)
+      await updateDoc(docRef, {
+        metricValue: submission.metricValue,
+        unit: submission.unit,
+        submittedAt: Timestamp.now(),
+        verified: false
+      })
+      return existing.id
+    } else {
+      // Create new submission
+      const submissionsRef = collection(db, 'workoutSubmissions')
+      const docRef = await addDoc(submissionsRef, {
+        ...submission,
+        submittedAt: Timestamp.now(),
+        verified: false
+      })
+      return docRef.id
+    }
+  },
+
+  // Delete a submission
+  async delete(id: string): Promise<void> {
+    if (!db) throw new Error('Firebase is not configured')
+    const docRef = doc(db, 'workoutSubmissions', id)
     await deleteDoc(docRef)
   }
 }

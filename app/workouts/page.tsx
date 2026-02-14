@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { CalendarIcon, ClockIcon, FireIcon } from '@heroicons/react/24/outline'
 
 interface Workout {
@@ -9,6 +10,7 @@ interface Workout {
   duration: string
   exercises: string[]
   description: string
+  competitionType?: 'time' | 'weight' | 'reps' | 'distance' | 'none'
 }
 
 // Example workouts - replace with your actual workouts
@@ -55,9 +57,10 @@ export default function WorkoutsPage() {
         {sortedWorkouts.length > 0 ? (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {sortedWorkouts.map((workout) => (
-              <div
+              <Link
                 key={workout.id}
-                className="bg-white rounded-lg shadow-md p-6 hover:shadow-xl transition-shadow"
+                href={`/workouts/${workout.id}`}
+                className="bg-white rounded-lg shadow-md p-6 hover:shadow-xl transition-shadow block"
               >
                 <div className="mb-4">
                   <h3 className="text-xl font-bold text-gray-900">{workout.title}</h3>
@@ -89,7 +92,14 @@ export default function WorkoutsPage() {
                     ))}
                   </ul>
                 </div>
-              </div>
+                {workout.competitionType && workout.competitionType !== 'none' && (
+                  <div className="mt-4 pt-4 border-t">
+                    <span className="inline-flex items-center gap-1 text-sm text-primary-600 font-semibold">
+                      🏆 Competition Active
+                    </span>
+                  </div>
+                )}
+              </Link>
             ))}
           </div>
         ) : (
