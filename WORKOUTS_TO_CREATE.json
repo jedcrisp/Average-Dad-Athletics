@@ -1,0 +1,51 @@
+[
+  {
+    "title": "Max Deadlift Challenge",
+    "date": "2024-02-15",
+    "duration": "45,
+    "exercises": ["Deadlifts", "Accessory work", "Core"],
+    "description": "Test your max deadlift strength. One rep max competition.",
+    "competitionType": "weight",
+    "competitionMetric": "Max Weight",
+    "competitionUnit": "lbs",
+    "competitionSort": "desc"
+  },
+  {
+    "title": "5K Time Trial",
+    "date": "2024-02-14",
+    "duration": 30,
+    "exercises": ["Running", "Warm-up", "Cool-down"],
+    "description": "Run 5K as fast as you can. Fastest time wins!",
+    "competitionType": "time",
+    "competitionMetric": "Fastest Time",
+    "competitionUnit": "seconds",
+    "competitionSort": "asc"
+  },
+  {
+    "title": "Max Push-ups Challenge",
+    "date": "2024-02-13",
+    "duration": 20,
+    "exercises": ["Push-ups", "Rest", "Repeat"],
+    "description": "How many push-ups can you do? Max reps competition.",
+    "competitionType": "reps",
+    "competitionMetric": "Total Reps",
+    "competitionUnit": "reps",
+    "competitionSort": "desc"
+  },
+  {
+    "title": "Full Body Strength",
+    "date": "2024-02-12",
+    "duration": 45,
+    "exercises": ["Squats", "Push-ups", "Deadlifts", "Pull-ups", "Planks"],
+    "description": "A complete full-body workout focusing on compound movements. Perfect for building strength and muscle.",
+    "competitionType": "none"
+  },
+  {
+    "title": "Cardio Blast",
+    "date": "2024-02-11",
+    "duration": 30,
+    "exercises": ["Running", "Burpees", "Jumping Jacks", "Mountain Climbers"],
+    "description": "High-intensity cardio workout to get your heart pumping and burn calories.",
+    "competitionType": "none"
+  }
+]
