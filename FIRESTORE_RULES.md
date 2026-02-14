@@ -39,10 +39,18 @@ service cloud.firestore {
       allow update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
     }
     
-    // Workouts - all authenticated users can read
+    // Helper function to check if user is admin
+    function isAdmin() {
+      // Check if user document has isAdmin field
+      return request.auth != null && 
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
+    }
+    
+    // Workouts - all authenticated users can read, only admins can write
     match /workouts/{workoutId} {
       allow read: if request.auth != null;
-      allow write: if false; // Only admins can write (configure later)
+      allow create, update, delete: if isAdmin();
     }
     
     // Workout submissions - users can read all, create/update their own

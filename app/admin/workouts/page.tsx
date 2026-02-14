@@ -1,0 +1,377 @@
+'use client'
+
+import { useState, useEffect } from 'react'
+import { useAuth } from '@/contexts/AuthContext'
+import { useRouter } from 'next/navigation'
+import { workoutHelpers, Workout } from '@/lib/firebase-helpers'
+import { isAdmin } from '@/lib/admin-helpers'
+
+export default function AdminWorkoutsPage() {
+  const { user, loading: authLoading } = useAuth()
+  const router = useRouter()
+  const [isAdmin, setIsAdmin] = useState(false)
+  const [checkingAdmin, setCheckingAdmin] = useState(true)
+  const [submitting, setSubmitting] = useState(false)
+  const [success, setSuccess] = useState(false)
+  const [error, setError] = useState('')
+
+  // Form state
+  const [title, setTitle] = useState('')
+  const [date, setDate] = useState(new Date().toISOString().split('T')[0])
+  const [duration, setDuration] = useState('45 min')
+  const [exercises, setExercises] = useState<string[]>([''])
+  const [description, setDescription] = useState('')
+  const [hasCompetition, setHasCompetition] = useState(false)
+  const [competitionType, setCompetitionType] = useState<'time' | 'weight' | 'reps' | 'distance'>('time')
+  const [competitionMetric, setCompetitionMetric] = useState('')
+  const [competitionUnit, setCompetitionUnit] = useState('')
+  const [competitionSort, setCompetitionSort] = useState<'asc' | 'desc'>('desc')
+
+  useEffect(() => {
+    const checkAdmin = async () => {
+      if (!authLoading && user) {
+        try {
+          const userIsAdmin = await isAdmin(user)
+          setIsAdmin(userIsAdmin)
+        } catch (error) {
+          console.error('Error checking admin status:', error)
+        } finally {
+          setCheckingAdmin(false)
+        }
+      } else if (!authLoading && !user) {
+        router.push('/login?redirect=/admin/workouts')
+        setCheckingAdmin(false)
+      }
+    }
+
+    checkAdmin()
+  }, [user, authLoading, router])
+
+  const addExercise = () => {
+    setExercises([...exercises, ''])
+  }
+
+  const updateExercise = (index: number, value: string) => {
+    const newExercises = [...exercises]
+    newExercises[index] = value
+    setExercises(newExercises)
+  }
+
+  const removeExercise = (index: number) => {
+    if (exercises.length > 1) {
+      setExercises(exercises.filter((_, i) => i !== index))
+    }
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError('')
+    setSuccess(false)
+
+    const filteredExercises = exercises.filter(ex => ex.trim() !== '')
+    if (filteredExercises.length === 0) {
+      setError('Please add at least one exercise')
+      return
+    }
+
+    setSubmitting(true)
+
+    try {
+      const workoutData: Omit<Workout, 'id'> = {
+        title: title.trim(),
+        date,
+        duration: duration.trim(),
+        exercises: filteredExercises,
+        description: description.trim(),
+        competitionType: hasCompetition ? competitionType : 'none',
+        competitionMetric: hasCompetition ? competitionMetric.trim() : undefined,
+        competitionUnit: hasCompetition ? competitionUnit.trim() : undefined,
+        competitionSort: hasCompetition ? competitionSort : undefined,
+      }
+
+      await workoutHelpers.create(workoutData)
+      
+      setSuccess(true)
+      
+      // Redirect to workouts page after 2 seconds
+      setTimeout(() => {
+        router.push('/workouts')
+      }, 2000)
+    } catch (err: any) {
+      console.error('Error creating workout:', err)
+      setError(err.message || 'Failed to create workout. Please try again.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  if (checkingAdmin || authLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!isAdmin) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+        <div className="max-w-md w-full bg-white rounded-lg shadow-md p-8 text-center">
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">Access Denied</h1>
+          <p className="text-gray-600 mb-6">
+            You don't have permission to access this page. Admin access required.
+          </p>
+          <a
+            href="/workouts"
+            className="text-primary-600 hover:text-primary-700 font-medium"
+          >
+            ← Back to Workouts
+          </a>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50 py-12 px-4">
+      <div className="max-w-4xl mx-auto">
+        <div className="mb-6">
+          <a
+            href="/workouts"
+            className="text-primary-600 hover:text-primary-700 font-medium"
+          >
+            ← Back to Workouts
+          </a>
+        </div>
+
+        <div className="bg-white rounded-lg shadow-md p-6 md:p-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-6">Create New Workout</h1>
+
+          {success && (
+            <div className="mb-6 p-4 bg-green-50 border border-green-200 text-green-700 rounded-lg">
+              Workout created successfully! It will appear on the workouts page.
+            </div>
+          )}
+
+          {error && (
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg">
+              {error}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Basic Info */}
+            <div className="space-y-4">
+              <h2 className="text-xl font-semibold text-gray-900">Basic Information</h2>
+              
+              <div>
+                <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
+                  Workout Title *
+                </label>
+                <input
+                  type="text"
+                  id="title"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  required
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                  placeholder="e.g., Max Deadlift Challenge"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="date" className="block text-sm font-medium text-gray-700 mb-2">
+                    Date *
+                  </label>
+                  <input
+                    type="date"
+                    id="date"
+                    value={date}
+                    onChange={(e) => setDate(e.target.value)}
+                    required
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="duration" className="block text-sm font-medium text-gray-700 mb-2">
+                    Duration *
+                  </label>
+                  <input
+                    type="text"
+                    id="duration"
+                    value={duration}
+                    onChange={(e) => setDuration(e.target.value)}
+                    required
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                    placeholder="e.g., 45 min"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
+                  Description *
+                </label>
+                <textarea
+                  id="description"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  required
+                  rows={3}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                  placeholder="Describe the workout..."
+                />
+              </div>
+            </div>
+
+            {/* Exercises */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-semibold text-gray-900">Exercises *</h2>
+                <button
+                  type="button"
+                  onClick={addExercise}
+                  className="text-sm text-primary-600 hover:text-primary-700 font-medium"
+                >
+                  + Add Exercise
+                </button>
+              </div>
+
+              {exercises.map((exercise, index) => (
+                <div key={index} className="flex gap-2">
+                  <input
+                    type="text"
+                    value={exercise}
+                    onChange={(e) => updateExercise(index, e.target.value)}
+                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                    placeholder={`Exercise ${index + 1}`}
+                  />
+                  {exercises.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => removeExercise(index)}
+                      className="px-4 py-2 text-red-600 hover:text-red-700 font-medium"
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {/* Competition Settings */}
+            <div className="space-y-4 border-t pt-6">
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  id="hasCompetition"
+                  checked={hasCompetition}
+                  onChange={(e) => setHasCompetition(e.target.checked)}
+                  className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                />
+                <label htmlFor="hasCompetition" className="ml-2 text-sm font-medium text-gray-700">
+                  Enable Competition/Leaderboard
+                </label>
+              </div>
+
+              {hasCompetition && (
+                <div className="ml-6 space-y-4 bg-gray-50 p-4 rounded-lg">
+                  <div>
+                    <label htmlFor="competitionType" className="block text-sm font-medium text-gray-700 mb-2">
+                      Competition Type *
+                    </label>
+                    <select
+                      id="competitionType"
+                      value={competitionType}
+                      onChange={(e) => {
+                        const type = e.target.value as 'time' | 'weight' | 'reps' | 'distance'
+                        setCompetitionType(type)
+                        // Set defaults based on type
+                        if (type === 'time') {
+                          setCompetitionMetric('Fastest Time')
+                          setCompetitionUnit('seconds')
+                          setCompetitionSort('asc')
+                        } else if (type === 'weight') {
+                          setCompetitionMetric('Max Weight')
+                          setCompetitionUnit('lbs')
+                          setCompetitionSort('desc')
+                        } else if (type === 'reps') {
+                          setCompetitionMetric('Total Reps')
+                          setCompetitionUnit('reps')
+                          setCompetitionSort('desc')
+                        } else if (type === 'distance') {
+                          setCompetitionMetric('Distance')
+                          setCompetitionUnit('miles')
+                          setCompetitionSort('desc')
+                        }
+                      }}
+                      required
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                    >
+                      <option value="time">Time (Fastest wins)</option>
+                      <option value="weight">Weight (Heaviest wins)</option>
+                      <option value="reps">Reps (Most wins)</option>
+                      <option value="distance">Distance (Farthest wins)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label htmlFor="competitionMetric" className="block text-sm font-medium text-gray-700 mb-2">
+                      Metric Display Name *
+                    </label>
+                    <input
+                      type="text"
+                      id="competitionMetric"
+                      value={competitionMetric}
+                      onChange={(e) => setCompetitionMetric(e.target.value)}
+                      required={hasCompetition}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                      placeholder="e.g., Fastest Time, Max Weight"
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="competitionUnit" className="block text-sm font-medium text-gray-700 mb-2">
+                      Unit of Measurement *
+                    </label>
+                    <input
+                      type="text"
+                      id="competitionUnit"
+                      value={competitionUnit}
+                      onChange={(e) => setCompetitionUnit(e.target.value)}
+                      required={hasCompetition}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                      placeholder="e.g., seconds, lbs, reps, miles"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Submit Button */}
+            <div className="flex gap-4 pt-4">
+              <button
+                type="submit"
+                disabled={submitting}
+                className="flex-1 bg-primary-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {submitting ? 'Creating...' : 'Create Workout'}
+              </button>
+              <a
+                href="/workouts"
+                className="px-6 py-3 border border-gray-300 rounded-lg font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </a>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  )
+}

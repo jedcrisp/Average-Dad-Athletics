@@ -1,13 +1,27 @@
 'use client'
 
 import Link from 'next/link'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
+import { isAdmin } from '@/lib/admin-helpers'
 import { Bars3Icon, XMarkIcon, UserIcon } from '@heroicons/react/24/outline'
 
 export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const { user, signOut } = useAuth()
+  const [userIsAdmin, setUserIsAdmin] = useState(false)
+
+  useEffect(() => {
+    const checkAdmin = async () => {
+      if (user) {
+        const admin = await isAdmin(user)
+        setUserIsAdmin(admin)
+      } else {
+        setUserIsAdmin(false)
+      }
+    }
+    checkAdmin()
+  }, [user])
 
   return (
     <nav className="bg-white shadow-lg sticky top-0 z-50">
@@ -34,6 +48,11 @@ export default function Navbar() {
             {user && (
               <Link href="/profile" className="text-gray-700 hover:text-primary-600 font-medium transition-colors">
                 Profile
+              </Link>
+            )}
+            {userIsAdmin && (
+              <Link href="/admin/workouts" className="text-gray-700 hover:text-primary-600 font-medium transition-colors">
+                Admin
               </Link>
             )}
             {user ? (
@@ -115,6 +134,15 @@ export default function Navbar() {
                 onClick={() => setMobileMenuOpen(false)}
               >
                 Profile
+              </Link>
+            )}
+            {userIsAdmin && (
+              <Link
+                href="/admin/workouts"
+                className="block px-3 py-2 text-gray-700 hover:bg-primary-50 rounded-md"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Admin
               </Link>
             )}
             {user ? (

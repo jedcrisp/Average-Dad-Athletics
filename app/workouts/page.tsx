@@ -1,41 +1,33 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { CalendarIcon, ClockIcon, FireIcon } from '@heroicons/react/24/outline'
-
-interface Workout {
-  id: string
-  title: string
-  date: string
-  duration: string
-  exercises: string[]
-  description: string
-  competitionType?: 'time' | 'weight' | 'reps' | 'distance' | 'none'
-}
-
-// Example workouts - replace with your actual workouts
-// Workouts are automatically sorted by date (newest first)
-const workouts: Workout[] = [
-  {
-    id: '1',
-    title: 'Full Body Strength',
-    date: '2024-01-15',
-    duration: '45 min',
-    exercises: ['Squats', 'Push-ups', 'Deadlifts', 'Pull-ups', 'Planks'],
-    description: 'A complete full-body workout focusing on compound movements. Perfect for building strength and muscle.',
-  },
-  {
-    id: '2',
-    title: 'Cardio Blast',
-    date: '2024-01-14',
-    duration: '30 min',
-    exercises: ['Running', 'Burpees', 'Jumping Jacks', 'Mountain Climbers'],
-    description: 'High-intensity cardio workout to get your heart pumping and burn calories.',
-  },
-  // Add more workouts here - they will be sorted by date automatically
-]
+import { workoutHelpers, Workout } from '@/lib/firebase-helpers'
 
 export default function WorkoutsPage() {
+  const [workouts, setWorkouts] = useState<Workout[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    const fetchWorkouts = async () => {
+      try {
+        setLoading(true)
+        const fetchedWorkouts = await workoutHelpers.getAll()
+        setWorkouts(fetchedWorkouts)
+        setError('')
+      } catch (err: any) {
+        console.error('Error fetching workouts:', err)
+        setError('Failed to load workouts. Please try again later.')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchWorkouts()
+  }, [])
+
   // Sort workouts by date (newest first)
   const sortedWorkouts = [...workouts].sort((a, b) => {
     return new Date(b.date).getTime() - new Date(a.date).getTime()
@@ -54,7 +46,22 @@ export default function WorkoutsPage() {
         </div>
 
         {/* Workouts Grid */}
-        {sortedWorkouts.length > 0 ? (
+        {loading ? (
+          <div className="text-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading workouts...</p>
+          </div>
+        ) : error ? (
+          <div className="text-center py-12">
+            <p className="text-red-600 text-lg mb-4">{error}</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="text-primary-600 hover:text-primary-700 font-medium"
+            >
+              Try again
+            </button>
+          </div>
+        ) : sortedWorkouts.length > 0 ? (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {sortedWorkouts.map((workout) => (
               <Link
