@@ -19,7 +19,9 @@ export default function AdminWorkoutsPage() {
   const [title, setTitle] = useState('')
   const [date, setDate] = useState(new Date().toISOString().split('T')[0])
   const [duration, setDuration] = useState('45 min')
-  const [exercises, setExercises] = useState<string[]>([''])
+  const [exercises, setExercises] = useState<Array<{movement: string, weight: string, time: string}>>([
+    { movement: '', weight: '', time: '' }
+  ])
   const [description, setDescription] = useState('')
   const [hasCompetition, setHasCompetition] = useState(false)
   const [competitionType, setCompetitionType] = useState<'time' | 'weight' | 'reps' | 'distance'>('time')
@@ -48,12 +50,12 @@ export default function AdminWorkoutsPage() {
   }, [user, authLoading, router])
 
   const addExercise = () => {
-    setExercises([...exercises, ''])
+    setExercises([...exercises, { movement: '', weight: '', time: '' }])
   }
 
-  const updateExercise = (index: number, value: string) => {
+  const updateExercise = (index: number, field: 'movement' | 'weight' | 'time', value: string) => {
     const newExercises = [...exercises]
-    newExercises[index] = value
+    newExercises[index] = { ...newExercises[index], [field]: value }
     setExercises(newExercises)
   }
 
@@ -63,14 +65,26 @@ export default function AdminWorkoutsPage() {
     }
   }
 
+  // Format exercise for storage (combines movement, weight, time into a string)
+  const formatExercise = (exercise: {movement: string, weight: string, time: string}): string => {
+    const parts: string[] = []
+    if (exercise.movement.trim()) parts.push(exercise.movement.trim())
+    if (exercise.weight.trim()) parts.push(`${exercise.weight.trim()}lbs`)
+    if (exercise.time.trim()) parts.push(exercise.time.trim())
+    return parts.join(' - ') || ''
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
     setSuccess(false)
 
-    const filteredExercises = exercises.filter(ex => ex.trim() !== '')
-    if (filteredExercises.length === 0) {
-      setError('Please add at least one exercise')
+    const formattedExercises = exercises
+      .map(ex => formatExercise(ex))
+      .filter(ex => ex.trim() !== '')
+    
+    if (formattedExercises.length === 0) {
+      setError('Please add at least one exercise with a movement name')
       return
     }
 
@@ -81,7 +95,7 @@ export default function AdminWorkoutsPage() {
         title: title.trim(),
         date,
         duration: duration.trim(),
-        exercises: filteredExercises,
+        exercises: formattedExercises,
         description: description.trim(),
         competitionType: hasCompetition ? competitionType : 'none',
         competitionMetric: hasCompetition ? competitionMetric.trim() : undefined,
@@ -116,7 +130,12 @@ export default function AdminWorkoutsPage() {
     )
   }
 
-  if (!userIsAdmin) {
+  // Development bypass - only in local dev
+  const [devBypass, setDevBypass] = useState(false)
+  const isDevelopment = typeof window !== 'undefined' && 
+    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+
+  if (!userIsAdmin && !devBypass) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
         <div className="max-w-md w-full bg-white rounded-lg shadow-md p-8 text-center">
@@ -124,6 +143,17 @@ export default function AdminWorkoutsPage() {
           <p className="text-gray-600 mb-6">
             You don't have permission to access this page. Admin access required.
           </p>
+          {isDevelopment && (
+            <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <p className="text-sm text-yellow-800 mb-3">Development Mode</p>
+              <button
+                onClick={() => setDevBypass(true)}
+                className="bg-yellow-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-yellow-700 transition-colors"
+              >
+                Bypass Admin Check
+              </button>
+            </div>
+          )}
           <a
             href="/workouts"
             className="text-primary-600 hover:text-primary-700 font-medium"
@@ -243,21 +273,47 @@ export default function AdminWorkoutsPage() {
               </div>
 
               {exercises.map((exercise, index) => (
-                <div key={index} className="flex gap-2">
-                  <input
-                    type="text"
-                    value={exercise}
-                    onChange={(e) => updateExercise(index, e.target.value)}
-                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                    placeholder={`Exercise ${index + 1}`}
-                  />
+                <div key={index} className="space-y-2">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">Movement *</label>
+                      <input
+                        type="text"
+                        value={exercise.movement}
+                        onChange={(e) => updateExercise(index, 'movement', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"
+                        placeholder="e.g., Deadlift"
+                        required={index === 0}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">Weight (lbs)</label>
+                      <input
+                        type="text"
+                        value={exercise.weight}
+                        onChange={(e) => updateExercise(index, 'weight', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"
+                        placeholder="e.g., 225"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">Time / Sets</label>
+                      <input
+                        type="text"
+                        value={exercise.time}
+                        onChange={(e) => updateExercise(index, 'time', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"
+                        placeholder="e.g., 5 sets or 30 min"
+                      />
+                    </div>
+                  </div>
                   {exercises.length > 1 && (
                     <button
                       type="button"
                       onClick={() => removeExercise(index)}
-                      className="px-4 py-2 text-red-600 hover:text-red-700 font-medium"
+                      className="text-sm text-red-600 hover:text-red-700 font-medium"
                     >
-                      Remove
+                      Remove Exercise
                     </button>
                   )}
                 </div>

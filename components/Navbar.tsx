@@ -56,7 +56,7 @@ export default function Navbar() {
               </Link>
             )}
             {user ? (
-              <div className="flex items-center gap-4">
+              <div className="flex flex-col items-end">
                 <Link
                   href="/profile"
                   className="text-gray-700 text-sm flex items-center gap-1 hover:text-primary-600 transition-colors"
@@ -66,7 +66,7 @@ export default function Navbar() {
                 </Link>
                 <button
                   onClick={() => signOut()}
-                  className="text-gray-700 hover:text-primary-600 font-medium transition-colors"
+                  className="text-gray-600 text-xs hover:text-primary-600 transition-colors mt-1"
                 >
                   Sign Out
                 </button>
