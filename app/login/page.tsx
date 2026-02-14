@@ -30,7 +30,7 @@ function LoginForm() {
 
     try {
       await signIn(email, password)
-      const redirect = searchParams.get('redirect') || '/forum'
+      const redirect = searchParams.get('redirect') || '/profile'
       router.push(redirect)
     } catch (err: any) {
       if (err.code === 'auth/invalid-credential' || err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') {
@@ -53,7 +53,7 @@ function LoginForm() {
     
     try {
       await signInWithGoogle()
-      const redirect = searchParams.get('redirect') || '/forum'
+      const redirect = searchParams.get('redirect') || '/profile'
       router.push(redirect)
     } catch (err: any) {
       setError(err.message || 'Failed to sign in with Google. Please try again.')
@@ -70,7 +70,7 @@ function LoginForm() {
     
     try {
       await signInWithApple()
-      const redirect = searchParams.get('redirect') || '/forum'
+      const redirect = searchParams.get('redirect') || '/profile'
       router.push(redirect)
     } catch (err: any) {
       setError(err.message || 'Failed to sign in with Apple. Please try again.')

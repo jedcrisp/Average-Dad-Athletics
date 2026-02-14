@@ -31,12 +31,20 @@ export default function Navbar() {
             <Link href="/forum" className="text-gray-700 hover:text-primary-600 font-medium transition-colors">
               Forum
             </Link>
+            {user && (
+              <Link href="/profile" className="text-gray-700 hover:text-primary-600 font-medium transition-colors">
+                Profile
+              </Link>
+            )}
             {user ? (
               <div className="flex items-center gap-4">
-                <span className="text-gray-700 text-sm flex items-center gap-1">
+                <Link
+                  href="/profile"
+                  className="text-gray-700 text-sm flex items-center gap-1 hover:text-primary-600 transition-colors"
+                >
                   <UserIcon className="w-4 h-4" />
                   {user.displayName || user.email}
-                </span>
+                </Link>
                 <button
                   onClick={() => signOut()}
                   className="text-gray-700 hover:text-primary-600 font-medium transition-colors"
@@ -100,13 +108,26 @@ export default function Navbar() {
             >
               Forum
             </Link>
+            {user && (
+              <Link
+                href="/profile"
+                className="block px-3 py-2 text-gray-700 hover:bg-primary-50 rounded-md"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Profile
+              </Link>
+            )}
             {user ? (
               <>
                 <div className="px-3 py-2 text-gray-700 text-sm border-t mt-2 pt-2">
-                  <div className="flex items-center gap-2 mb-2">
+                  <Link
+                    href="/profile"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center gap-2 mb-2 hover:text-primary-600 transition-colors"
+                  >
                     <UserIcon className="w-4 h-4" />
                     {user.displayName || user.email}
-                  </div>
+                  </Link>
                   <button
                     onClick={() => {
                       signOut()

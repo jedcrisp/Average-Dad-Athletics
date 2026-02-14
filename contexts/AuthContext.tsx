@@ -28,6 +28,53 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
+// Helper function to save user data to Firestore with offline handling
+async function saveUserToFirestore(user: User, provider?: string, name?: string) {
+  if (!db) {
+    console.warn('Firestore not available, skipping user save')
+    return
+  }
+
+  try {
+    const userRef = doc(db, 'users', user.uid)
+    const userDoc = await getDoc(userRef)
+    
+    const userName = name || user.displayName || 'User'
+    const userData = {
+      name: userName,
+      email: user.email || '',
+      updatedAt: new Date().toISOString(),
+    }
+
+    if (provider) {
+      (userData as any).provider = provider
+    }
+
+    if (!userDoc.exists()) {
+      // New user - create document
+      await setDoc(userRef, {
+        ...userData,
+        createdAt: new Date().toISOString(),
+      })
+    } else {
+      // Existing user - update document
+      await setDoc(userRef, {
+        ...userData,
+        name: userName || userDoc.data()?.name || 'User',
+      }, { merge: true })
+    }
+  } catch (error: any) {
+    // Handle offline errors gracefully
+    if (error?.code === 'unavailable' || error?.message?.includes('offline') || error?.message?.includes('Failed to get document because the client is offline')) {
+      console.warn('Firestore is offline. User data will be saved when connection is restored.')
+      // Firestore will automatically retry when online if persistence is enabled
+      return
+    }
+    // Log other errors but don't throw - sign-in should still succeed
+    console.error('Error saving user to Firestore:', error)
+  }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
@@ -63,23 +110,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             }
 
             if (firebaseUser) {
-              // Get additional user data from Firestore
-              try {
-                if (db) {
-                  const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid))
-                  if (!userDoc.exists() && firebaseUser.email) {
-                    // Create user document if it doesn't exist
-                    await setDoc(doc(db, 'users', firebaseUser.uid), {
-                      name: firebaseUser.displayName || 'User',
-                      email: firebaseUser.email,
-                      createdAt: new Date().toISOString(),
-                      updatedAt: new Date().toISOString(),
-                    })
-                  }
-                }
-              } catch (error) {
-                console.error('Error fetching user data:', error)
-              }
+              // Save user data to Firestore (non-blocking)
+              // This will be retried automatically if offline
+              saveUserToFirestore(firebaseUser).catch(() => {
+                // Error already logged in helper function
+              })
             }
             if (mounted) {
               setUser(firebaseUser)
@@ -150,30 +185,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       const result = await signInWithPopup(auth, provider)
       
-      // Save user to Firestore
-      if (db && result.user) {
-        try {
-          const userRef = doc(db, 'users', result.user.uid)
-          const userDoc = await getDoc(userRef)
-          
-          if (!userDoc.exists()) {
-            await setDoc(userRef, {
-              name: result.user.displayName || 'User',
-              email: result.user.email,
-              provider: 'google',
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString(),
-            })
-          } else {
-            await setDoc(userRef, {
-              name: result.user.displayName || userDoc.data()?.name,
-              email: result.user.email,
-              updatedAt: new Date().toISOString(),
-            }, { merge: true })
-          }
-        } catch (error) {
-          console.error('Error saving user to Firestore:', error)
-        }
+      // Save user to Firestore (non-blocking - won't fail sign-in if offline)
+      if (result.user) {
+        await saveUserToFirestore(result.user, 'google')
       }
     } catch (error: any) {
       // Suppress internal assertion errors - these are Firebase bugs
@@ -211,30 +225,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const provider = new OAuthProvider('apple.com')
       const result = await signInWithPopup(auth, provider)
       
-      // Save user to Firestore
-      if (db && result.user) {
-        try {
-          const userRef = doc(db, 'users', result.user.uid)
-          const userDoc = await getDoc(userRef)
-          
-          if (!userDoc.exists()) {
-            await setDoc(userRef, {
-              name: result.user.displayName || 'User',
-              email: result.user.email,
-              provider: 'apple',
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString(),
-            })
-          } else {
-            await setDoc(userRef, {
-              name: result.user.displayName || userDoc.data()?.name,
-              email: result.user.email,
-              updatedAt: new Date().toISOString(),
-            }, { merge: true })
-          }
-        } catch (error) {
-          console.error('Error saving user to Firestore:', error)
-        }
+      // Save user to Firestore (non-blocking - won't fail sign-in if offline)
+      if (result.user) {
+        await saveUserToFirestore(result.user, 'apple')
       }
     } catch (error: any) {
       // Suppress internal assertion errors - these are Firebase bugs
@@ -271,15 +264,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Update display name
     await updateProfile(user, { displayName: name })
     
-    // Save to Firestore
-    if (db) {
-      await setDoc(doc(db, 'users', user.uid), {
-        name,
-        email,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      })
-    }
+    // Save to Firestore (non-blocking - won't fail registration if offline)
+    // Pass name explicitly since displayName might not be immediately available
+    await saveUserToFirestore(user, undefined, name)
   }
 
   const signOut = async () => {

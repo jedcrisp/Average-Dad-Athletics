@@ -23,7 +23,7 @@ export default function RegisterPage() {
 
     try {
       await register(name, email, password)
-      router.push('/forum')
+      router.push('/profile')
     } catch (err: any) {
       if (err.code === 'auth/email-already-in-use') {
         setError('This email is already registered. Please sign in instead.')
@@ -47,7 +47,7 @@ export default function RegisterPage() {
     
     try {
       await signInWithGoogle()
-      router.push('/forum')
+      router.push('/profile')
     } catch (err: any) {
       setError(err.message || 'Failed to sign in with Google. Please try again.')
     } finally {
@@ -63,7 +63,7 @@ export default function RegisterPage() {
     
     try {
       await signInWithApple()
-      router.push('/forum')
+      router.push('/profile')
     } catch (err: any) {
       setError(err.message || 'Failed to sign in with Apple. Please try again.')
     } finally {
