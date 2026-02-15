@@ -33,13 +33,19 @@ service cloud.firestore {
     }
     
     // Forum posts - authenticated users can read all, create their own, and add replies
+    // Admins can delete any post
     match /forumPosts/{postId} {
       allow read: if request.auth != null;
       allow create: if request.auth != null && request.resource.data.authorId == request.auth.uid;
       // Allow updates for adding replies (any authenticated user can add replies)
       allow update: if request.auth != null;
-      // Only post author can delete their own post
-      allow delete: if request.auth != null && request.auth.uid == resource.data.authorId;
+      // Post author or admin can delete posts
+      allow delete: if request.auth != null && (request.auth.uid == resource.data.authorId || isAdmin());
+    }
+    
+    // Blocked users - only admins can read/write
+    match /blockedUsers/{email} {
+      allow read, write: if isAdmin();
     }
     
     // Helper function to check if user is admin
@@ -89,7 +95,8 @@ service cloud.firestore {
 ## What These Rules Do
 
 - **Users collection**: Users can only read/write their own document (matching their `uid`)
-- **Forum collection**: Users can read all posts, create posts, and edit/delete their own posts
+- **Forum posts collection**: Users can read all posts, create posts, and edit/delete their own posts. Admins can delete any post.
+- **Blocked users collection**: Only admins can read/write blocked user emails
 - **Workouts collection**: Users can read workouts, but only admins can write (you can configure admin access later)
 - **Workout submissions collection**: Users can read all submissions, create their own, and update/delete their own submissions
 - **Everything else**: Denied by default for security
