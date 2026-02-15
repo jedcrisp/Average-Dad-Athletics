@@ -1,31 +1,9 @@
 import { NextResponse } from 'next/server'
-import { storeProductHelpers } from '@/lib/firebase-helpers'
 import { getPrintfulProducts, PrintfulProduct } from '@/lib/printful-helpers'
 
 export async function GET() {
   try {
-    // Try to fetch from Firestore first (faster, cached)
-    try {
-      const firestoreProducts = await storeProductHelpers.getAll()
-      if (firestoreProducts.length > 0) {
-        // Transform Firestore products to store format
-        const products = firestoreProducts.map((p: any) => ({
-          id: p.id,
-          name: p.name,
-          description: p.description,
-          price: p.price,
-          currency: p.currency,
-          image: p.image,
-          printfulProductId: p.printfulProductId,
-          category: p.category,
-        }))
-        return NextResponse.json({ products, source: 'firestore' })
-      }
-    } catch (firestoreError) {
-      console.warn('Error fetching from Firestore, falling back to Printful:', firestoreError)
-    }
-
-    // Fallback: Fetch directly from Printful if Firestore is empty
+    // Fetch directly from Printful (always up-to-date)
     console.log('Fetching products directly from Printful...')
     const printfulProducts = await getPrintfulProducts()
     console.log(`Received ${printfulProducts.length} products from Printful API`)
@@ -68,7 +46,7 @@ export async function GET() {
       })
 
     console.log(`Returning ${products.length} products to frontend`)
-    return NextResponse.json({ products, source: 'printful' })
+    return NextResponse.json({ products })
   } catch (error: any) {
     console.error('Error fetching products:', error)
     return NextResponse.json({ 
