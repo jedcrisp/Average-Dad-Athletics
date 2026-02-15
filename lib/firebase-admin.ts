@@ -6,12 +6,14 @@ import { getFirestore, Firestore } from 'firebase-admin/firestore'
 
 let adminApp: App | null = null
 let adminDb: Firestore | null = null
+let initialized = false
 
-// Initialize Firebase Admin SDK
+// Initialize Firebase Admin SDK (only if credentials are available)
 function initializeAdmin() {
-  if (adminApp) {
+  if (initialized) {
     return adminApp
   }
+  initialized = true
 
   // Check if we have the required credentials
   const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID
@@ -19,7 +21,7 @@ function initializeAdmin() {
   const clientEmail = process.env.FIREBASE_ADMIN_CLIENT_EMAIL
 
   if (!projectId) {
-    console.warn('Firebase Admin: NEXT_PUBLIC_FIREBASE_PROJECT_ID not set')
+    // Silently skip - Admin SDK is optional
     return null
   }
 
@@ -40,34 +42,22 @@ function initializeAdmin() {
       console.log('✅ Firebase Admin SDK initialized with service account')
       return adminApp
     } catch (error) {
-      console.error('Failed to initialize Firebase Admin SDK:', error)
+      // Silently fail - Admin SDK is optional
       return null
     }
   }
 
-  // Fallback: Try to initialize without credentials (uses Application Default Credentials)
-  // This works if running on Google Cloud or if GOOGLE_APPLICATION_CREDENTIALS is set
-  try {
-    if (getApps().length === 0) {
-      adminApp = initializeApp({
-        projectId,
-      })
-      adminDb = getFirestore(adminApp)
-      console.log('✅ Firebase Admin SDK initialized (using default credentials)')
-      return adminApp
-    } else {
-      adminApp = getApps()[0]
-      adminDb = getFirestore(adminApp)
-      return adminApp
-    }
-  } catch (error) {
-    console.warn('Firebase Admin SDK: Could not initialize. Using fallback client SDK.')
-    console.warn('For server-side admin operations, set up Firebase Admin SDK credentials.')
-    return null
-  }
+  // Don't try to initialize without credentials - it will cause errors
+  // Admin SDK is optional, regular SDK will be used instead
+  return null
 }
 
-// Initialize on import
-initializeAdmin()
+// Initialize on import (only if credentials are available)
+try {
+  initializeAdmin()
+} catch (error) {
+  // Silently fail - Admin SDK is optional
+}
 
 export { adminApp, adminDb }
+
