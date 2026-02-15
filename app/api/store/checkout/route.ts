@@ -27,6 +27,10 @@ export async function POST(request: NextRequest) {
           product_data: {
             name: item.productName || 'Product',
             description: `Variant ID: ${item.variantId}`,
+            metadata: {
+              variant_id: item.variantId.toString(),
+              product_id: item.productId || '',
+            },
           },
           unit_amount: unitPrice,
         },
@@ -34,69 +38,21 @@ export async function POST(request: NextRequest) {
       }
     })
 
-    // Get shipping rates from Printful if address is provided
-    let shippingOptions: any[] = []
-    if (shippingAddress && shippingAddress.address1 && shippingAddress.city && shippingAddress.state_code && shippingAddress.country_code && shippingAddress.zip) {
-      try {
-        const rates = await getShippingRates({
-          recipient: {
-            address1: shippingAddress.address1,
-            city: shippingAddress.city,
-            state_code: shippingAddress.state_code,
-            country_code: shippingAddress.country_code,
-            zip: shippingAddress.zip,
-          },
-          items: items.map((item: any) => ({
-            variant_id: item.variantId,
-            quantity: item.quantity,
-          })),
-        })
-
-        console.log('📦 Printful shipping rates:', rates)
-
-        // Transform Printful rates to Stripe shipping options
-        shippingOptions = rates.map((rate: any) => ({
-          shipping_rate_data: {
-            type: 'fixed_amount',
-            fixed_amount: {
-              amount: Math.round(parseFloat(rate.rate || rate.retail_rate || '0') * 100), // Convert to cents
-              currency: (rate.currency || 'USD').toLowerCase(),
-            },
-            display_name: rate.name || `${rate.service || 'Shipping'} - ${rate.delivery_days ? `${rate.delivery_days} days` : ''}`,
-            delivery_estimate: rate.delivery_days
-              ? {
-                  minimum: {
-                    unit: 'business_day',
-                    value: Math.max(1, rate.delivery_days - 2),
-                  },
-                  maximum: {
-                    unit: 'business_day',
-                    value: rate.delivery_days + 2,
-                  },
-                }
-              : undefined,
-          },
-        }))
-
-        console.log('✅ Created shipping options:', shippingOptions.length)
-      } catch (shippingError: any) {
-        console.warn('⚠️ Could not get shipping rates from Printful, checkout will collect address:', shippingError)
-        // Continue without shipping options - Stripe will collect address and we can calculate later
-      }
-    }
-
     // Create checkout session with shipping address collection
+    // We'll calculate shipping dynamically via webhook when address is entered
     const session = await createCheckoutSession(
       lineItems,
       `${request.nextUrl.origin}/store/success?session_id={CHECKOUT_SESSION_ID}`,
       `${request.nextUrl.origin}/store`,
       {
-        // Store metadata for order fulfillment
+        // Store metadata for order fulfillment and shipping calculation
         items: JSON.stringify(items),
       },
-      true, // Enable shipping address collection
-      shippingOptions.length > 0 ? shippingOptions : undefined // Add shipping options if available
+      true // Enable shipping address collection
     )
+
+    console.log('✅ Checkout session created with shipping address collection')
+    console.log('📦 Shipping will be calculated from Printful when customer enters address')
 
     return NextResponse.json({ url: session.url })
   } catch (error: any) {
