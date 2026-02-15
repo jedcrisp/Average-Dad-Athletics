@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getPrintfulProducts } from '@/lib/printful-helpers'
-import { collection, doc, setDoc, getDocs, query } from 'firebase/firestore'
-import { db } from '@/lib/firebase-client'
+import { doc, setDoc } from 'firebase/firestore'
+import { db } from '@/lib/firebase'
 
 export async function POST() {
   console.log('=== SYNC STARTED ===')
