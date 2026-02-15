@@ -274,17 +274,27 @@ export default function ProductDetailPage() {
                   
                   return displayImage ? (
                     <img
-                      key={displayImage} // Force re-render when image changes
+                      key={`${displayImage}-${selectedColor}`} // Force re-render when image or color changes
                       src={displayImage}
                       alt={`${product.name} - ${selectedColor || ''}`}
                       className="w-full h-full object-cover transition-opacity duration-300"
                       onError={(e) => {
-                        // Fallback to product image if variant image fails
+                        // Handle Access Denied errors from Printful S3 images
                         const target = e.target as HTMLImageElement
-                        console.error(`❌ Image failed to load: ${target.src}`)
-                        if (target.src !== product.image) {
-                          target.src = product.image || 'https://via.placeholder.com/800x800/cccccc/666666?text=Product+Image'
-                        } else {
+                        const currentSrc = target.src
+                        console.error(`❌ Image failed to load (Access Denied from S3?): ${currentSrc.substring(0, 100)}...`)
+                        
+                        // Prevent infinite loop - check if we've already tried fallback
+                        const isPlaceholder = currentSrc.includes('via.placeholder') || currentSrc.includes('unsplash')
+                        const isProductImage = currentSrc === product.image
+                        
+                        if (!isPlaceholder && !isProductImage && product.image) {
+                          // First fallback: try product image
+                          console.log(`🔄 Falling back to product image due to Access Denied`)
+                          target.src = product.image
+                        } else if (!isPlaceholder) {
+                          // Final fallback: placeholder
+                          console.log(`🔄 Falling back to placeholder`)
                           target.src = 'https://via.placeholder.com/800x800/cccccc/666666?text=Product+Image'
                         }
                       }}
