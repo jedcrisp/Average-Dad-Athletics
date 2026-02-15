@@ -165,20 +165,22 @@ export default function AdminStoreSyncPage() {
             <div className={`mb-6 p-4 border rounded-lg ${
               syncResult.synced > 0 
                 ? 'bg-green-50 border-green-200' 
+                : syncResult.failed > 0
+                ? 'bg-red-50 border-red-200'
                 : 'bg-yellow-50 border-yellow-200'
             }`}>
               <p className={`font-semibold mb-2 ${
-                syncResult.synced > 0 ? 'text-green-800' : 'text-yellow-800'
+                syncResult.synced > 0 ? 'text-green-800' : syncResult.failed > 0 ? 'text-red-800' : 'text-yellow-800'
               }`}>
-                {syncResult.synced > 0 ? 'Sync completed!' : 'No products synced'}
+                {syncResult.synced > 0 ? 'Sync completed!' : syncResult.failed > 0 ? 'Sync failed' : 'No products synced'}
               </p>
               <ul className="text-sm space-y-1">
                 {syncResult.total !== undefined && (
-                  <li className={syncResult.synced > 0 ? 'text-green-700' : 'text-yellow-700'}>
+                  <li className={syncResult.synced > 0 ? 'text-green-700' : 'text-red-700'}>
                     Total found: {syncResult.total} products
                   </li>
                 )}
-                <li className={syncResult.synced > 0 ? 'text-green-700' : 'text-yellow-700'}>
+                <li className={syncResult.synced > 0 ? 'text-green-700' : 'text-red-700'}>
                   ✓ Synced: {syncResult.synced} products
                 </li>
                 {syncResult.skipped !== undefined && syncResult.skipped > 0 && (
@@ -188,9 +190,20 @@ export default function AdminStoreSyncPage() {
                   <li className="text-red-600">✗ Failed: {syncResult.failed} products</li>
                 )}
               </ul>
+              {syncResult.failedProducts && syncResult.failedProducts.length > 0 && (
+                <div className="mt-3 p-3 bg-red-100 rounded border border-red-300">
+                  <p className="text-sm font-semibold text-red-800 mb-2">Failed Products:</p>
+                  {syncResult.failedProducts.map((p: any, idx: number) => (
+                    <div key={idx} className="text-sm text-red-700 mb-1">
+                      <strong>{p.name}</strong> (ID: {p.id}): {p.error}
+                      {p.code && <span className="text-xs"> (Code: {p.code})</span>}
+                    </div>
+                  ))}
+                </div>
+              )}
               {syncResult.message && (
                 <p className={`mt-2 text-sm ${
-                  syncResult.synced > 0 ? 'text-green-700' : 'text-yellow-700'
+                  syncResult.synced > 0 ? 'text-green-700' : syncResult.failed > 0 ? 'text-red-700' : 'text-yellow-700'
                 }`}>
                   {syncResult.message}
                 </p>

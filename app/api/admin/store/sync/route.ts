@@ -160,9 +160,20 @@ export async function POST() {
         if (error.code === 'permission-denied') {
           console.error('   ⚠️ PERMISSION DENIED - Check Firestore security rules for storeProducts collection')
           console.error('   Make sure admins can write to storeProducts collection')
+          console.error('   Current user needs to be marked as admin in Firestore')
         } else if (error.code === 'unavailable') {
           console.error('   ⚠️ FIRESTORE UNAVAILABLE - Check your internet connection')
+        } else if (error.message?.includes('Invalid document reference')) {
+          console.error('   ⚠️ INVALID DOCUMENT REFERENCE - Check product ID format')
         }
+        
+        // Store error for response
+        syncedProducts.push({
+          id: product.id.toString(),
+          name: product.name,
+          error: error.message || 'Unknown error',
+          code: error.code,
+        })
         
         failedCount++
       }
@@ -176,15 +187,22 @@ export async function POST() {
       failed: failedCount,
     })
 
+    // Filter out failed products from the products array (keep only successful ones)
+    const successfulProducts = syncedProducts.filter((p: any) => !p.error)
+    const failedProducts = syncedProducts.filter((p: any) => p.error)
+    
     const result = {
-      success: true,
+      success: syncedCount > 0,
       synced: syncedCount,
       failed: failedCount,
       skipped: skippedCount,
       total: printfulProducts.length,
-      products: syncedProducts,
+      products: successfulProducts,
+      failedProducts: failedProducts.length > 0 ? failedProducts : undefined,
       message: syncedCount === 0 
-        ? 'No products were synced. Check if products exist in Printful and are not discontinued.'
+        ? failedCount > 0 
+          ? `Failed to sync products. Check server logs for details. ${failedProducts[0]?.error || ''}`
+          : 'No products were synced. Check if products exist in Printful and are not discontinued.'
         : `Successfully synced ${syncedCount} product(s)`,
     }
     
