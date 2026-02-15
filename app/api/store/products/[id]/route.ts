@@ -3,10 +3,10 @@ import { getPrintfulProductVariants } from '@/lib/printful-helpers'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const productId = params.id
+    const { id: productId } = await params
 
     // Fetch product details and variants from Printful
     // For now, return mock data - replace with actual Printful API call
