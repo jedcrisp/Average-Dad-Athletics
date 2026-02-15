@@ -119,6 +119,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               return
             }
 
+            // Check for redirect result (after OAuth redirect)
+            try {
+              const redirectResult = await getRedirectResult(auth)
+              if (redirectResult?.user) {
+                await saveUserToFirestore(redirectResult.user, 'google')
+              }
+            } catch (error) {
+              // Ignore redirect errors - user might not have come from redirect
+              // This is normal if the user didn't just complete an OAuth redirect
+            }
+
             if (firebaseUser) {
               // Save user data to Firestore (non-blocking)
               // This will be retried automatically if offline
