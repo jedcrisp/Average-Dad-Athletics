@@ -7,7 +7,9 @@ interface StoreProduct {
   id: string
   name: string
   description: string
-  price: number
+  price?: number // Legacy support
+  priceMin: number
+  priceMax: number
   currency: string
   image: string
   printfulProductId: number
@@ -124,7 +126,13 @@ export default function StorePage() {
                   <h3 className="text-lg font-semibold text-gray-900 mb-2">{product.name}</h3>
                   <p className="text-sm text-gray-600 mb-3 line-clamp-2">{product.description}</p>
                   <p className="text-xl font-bold text-primary-600">
-                    ${(product.price / 100).toFixed(2)} {product.currency.toUpperCase()}
+                    {product.priceMin === product.priceMax ? (
+                      // Same price for all variants - show single price
+                      `$${(product.priceMin / 100).toFixed(2)} ${product.currency.toUpperCase()}`
+                    ) : (
+                      // Different prices - show range
+                      `$${(product.priceMin / 100).toFixed(2)} - $${(product.priceMax / 100).toFixed(2)} ${product.currency.toUpperCase()}`
+                    )}
                   </p>
                 </div>
               </Link>
