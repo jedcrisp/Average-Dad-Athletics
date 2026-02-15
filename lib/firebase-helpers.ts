@@ -106,11 +106,22 @@ export const workoutHelpers = {
   async create(workout: Omit<Workout, 'id'>): Promise<string> {
     if (!db) throw new Error('Firebase is not configured')
     const workoutsRef = collection(db, 'workouts')
-    const docRef = await addDoc(workoutsRef, {
+    
+    // Remove undefined values (Firestore doesn't allow them)
+    const cleanWorkout: any = {
       ...workout,
       createdAt: Timestamp.now(),
       updatedAt: Timestamp.now()
+    }
+    
+    // Remove undefined fields
+    Object.keys(cleanWorkout).forEach(key => {
+      if (cleanWorkout[key] === undefined) {
+        delete cleanWorkout[key]
+      }
     })
+    
+    const docRef = await addDoc(workoutsRef, cleanWorkout)
     return docRef.id
   },
 

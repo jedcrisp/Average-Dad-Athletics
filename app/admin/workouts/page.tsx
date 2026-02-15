@@ -84,25 +84,38 @@ export default function AdminWorkoutsPage() {
     const formattedExercises = exercises
       .map(ex => formatExercise(ex))
       .filter(ex => ex.trim() !== '')
-    
-    if (formattedExercises.length === 0) {
-      setError('Please add at least one exercise with a movement name')
-      return
-    }
 
     setSubmitting(true)
 
     try {
-      const workoutData: Omit<Workout, 'id'> = {
+      const workoutData: any = {
         title: title.trim(),
         date,
-        duration: duration.trim(),
-        exercises: formattedExercises,
-        description: description.trim(),
-        competitionType: hasCompetition ? competitionType : 'none',
-        competitionMetric: hasCompetition ? competitionMetric.trim() : undefined,
-        competitionUnit: hasCompetition ? competitionUnit.trim() : undefined,
-        competitionSort: hasCompetition ? competitionSort : undefined,
+      }
+      
+      // Optional fields - only include if they have values
+      if (duration.trim()) {
+        workoutData.duration = duration.trim()
+      }
+      if (formattedExercises.length > 0) {
+        workoutData.exercises = formattedExercises
+      }
+      if (description.trim()) {
+        workoutData.description = description.trim()
+      }
+      
+      // Competition fields - only include if competition is enabled
+      if (hasCompetition) {
+        workoutData.competitionType = competitionType
+        if (competitionMetric.trim()) {
+          workoutData.competitionMetric = competitionMetric.trim()
+        }
+        if (competitionUnit.trim()) {
+          workoutData.competitionUnit = competitionUnit.trim()
+        }
+        workoutData.competitionSort = competitionSort
+      } else {
+        workoutData.competitionType = 'none'
       }
 
       await workoutHelpers.create(workoutData)
@@ -230,14 +243,13 @@ export default function AdminWorkoutsPage() {
 
                 <div>
                   <label htmlFor="duration" className="block text-sm font-medium text-gray-700 mb-2">
-                    Duration *
+                    Duration
                   </label>
                   <input
                     type="text"
                     id="duration"
                     value={duration}
                     onChange={(e) => setDuration(e.target.value)}
-                    required
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                     placeholder="e.g., 45 min"
                   />
@@ -246,13 +258,12 @@ export default function AdminWorkoutsPage() {
 
               <div>
                 <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
-                  Description *
+                  Description
                 </label>
                 <textarea
                   id="description"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  required
                   rows={3}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                   placeholder="Describe the workout..."
@@ -263,7 +274,7 @@ export default function AdminWorkoutsPage() {
             {/* Exercises */}
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <h2 className="text-xl font-semibold text-gray-900">Exercises *</h2>
+                <h2 className="text-xl font-semibold text-gray-900">Exercises</h2>
                 <button
                   type="button"
                   onClick={addExercise}
