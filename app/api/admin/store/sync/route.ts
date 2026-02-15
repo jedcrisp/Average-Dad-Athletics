@@ -15,13 +15,6 @@ export async function POST(request: NextRequest) {
     }
     console.log('✅ Firebase is configured')
 
-    // Check Firebase (already checked above, but keep for compatibility)
-    if (!firestoreDb) {
-      console.error('❌ Firebase is not configured')
-      throw new Error('Firebase is not configured')
-    }
-    console.log('✅ Firebase is configured')
-
     // Check Printful API key
     const apiKey = process.env.PRINTFUL_API_KEY
     if (!apiKey) {
