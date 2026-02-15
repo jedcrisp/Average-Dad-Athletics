@@ -27,6 +27,13 @@ interface StoreProduct {
   printfulProductId: number
 }
 
+interface ColorGroup {
+  color: string
+  color_code: string
+  variants: ProductVariant[]
+  image?: string
+}
+
 export default function ProductDetailPage() {
   const params = useParams()
   const router = useRouter()
@@ -35,10 +42,63 @@ export default function ProductDetailPage() {
   const [product, setProduct] = useState<StoreProduct | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [selectedColor, setSelectedColor] = useState<string | null>(null)
+  const [selectedSize, setSelectedSize] = useState<string | null>(null)
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null)
   const [quantity, setQuantity] = useState(1)
   const [checkoutLoading, setCheckoutLoading] = useState(false)
   const [addedToCart, setAddedToCart] = useState(false)
+  
+  // Group variants by color
+  const colorGroups = product?.variants.reduce((groups: ColorGroup[], variant) => {
+    const existingGroup = groups.find(g => g.color === variant.color)
+    if (existingGroup) {
+      existingGroup.variants.push(variant)
+      // Use variant image if available and group doesn't have one
+      if (!existingGroup.image && variant.image) {
+        existingGroup.image = variant.image
+      }
+    } else {
+      groups.push({
+        color: variant.color,
+        color_code: variant.color_code,
+        variants: [variant],
+        image: variant.image || undefined,
+      })
+    }
+    return groups
+  }, []) || []
+  
+  // Get available sizes for selected color
+  const availableSizes = selectedColor
+    ? colorGroups.find(g => g.color === selectedColor)?.variants || []
+    : []
+  
+  // Update selected variant when color or size changes
+  useEffect(() => {
+    if (selectedColor && selectedSize && product) {
+      const variant = product.variants.find(
+        v => v.color === selectedColor && v.size === selectedSize
+      )
+      setSelectedVariant(variant || null)
+    } else {
+      setSelectedVariant(null)
+    }
+  }, [selectedColor, selectedSize, product])
+  
+  // Auto-select first color and size when product loads
+  useEffect(() => {
+    if (product && product.variants.length > 0 && !selectedColor) {
+      const firstColor = colorGroups[0]?.color
+      if (firstColor) {
+        setSelectedColor(firstColor)
+        const firstSize = colorGroups[0]?.variants[0]?.size
+        if (firstSize) {
+          setSelectedSize(firstSize)
+        }
+      }
+    }
+  }, [product, colorGroups])
 
   useEffect(() => {
     if (params.id) {
@@ -55,9 +115,10 @@ export default function ProductDetailPage() {
       }
       const data = await response.json()
       setProduct(data.product)
-      if (data.product.variants && data.product.variants.length > 0) {
-        setSelectedVariant(data.product.variants[0])
-      }
+      // Reset selections when product changes
+      setSelectedColor(null)
+      setSelectedSize(null)
+      setSelectedVariant(null)
     } catch (err: any) {
       setError(err.message || 'Failed to load product')
       console.error('Error fetching product:', err)
@@ -201,38 +262,67 @@ export default function ProductDetailPage() {
               <h1 className="text-3xl font-bold text-gray-900 mb-4">{product.name}</h1>
               <p className="text-gray-600 mb-6">{product.description}</p>
 
-              {/* Variant Selection */}
-              {product.variants && product.variants.length > 0 && (
+              {/* Color Selection */}
+              {colorGroups.length > 0 && (
                 <div className="mb-6">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Select Variant
+                    Select Color
                   </label>
-                  <div className="space-y-2">
-                    {product.variants.map((variant) => (
+                  <div className="flex flex-wrap gap-3">
+                    {colorGroups.map((group) => (
                       <button
-                        key={variant.id}
-                        onClick={() => setSelectedVariant(variant)}
-                        disabled={!variant.in_stock}
-                        className={`w-full text-left p-3 rounded-lg border-2 transition-colors ${
-                          selectedVariant?.id === variant.id
+                        key={group.color}
+                        onClick={() => {
+                          setSelectedColor(group.color)
+                          // Auto-select first available size for this color
+                          const firstSize = group.variants.find(v => v.in_stock)?.size || group.variants[0]?.size
+                          if (firstSize) {
+                            setSelectedSize(firstSize)
+                          }
+                        }}
+                        className={`flex items-center gap-2 px-4 py-2 rounded-lg border-2 transition-colors ${
+                          selectedColor === group.color
                             ? 'border-primary-600 bg-primary-50'
                             : 'border-gray-200 hover:border-gray-300'
-                        } ${!variant.in_stock ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        }`}
                       >
-                        <div className="flex justify-between items-center">
-                          <div>
-                            <p className="font-medium">{variant.name}</p>
-                            <p className="text-sm text-gray-600">
-                              {variant.size} - {variant.color}
-                            </p>
-                          </div>
-                          <div className="text-right">
-                            <p className="font-semibold">${parseFloat(variant.price).toFixed(2)}</p>
-                            {!variant.in_stock && (
-                              <p className="text-xs text-red-600">Out of Stock</p>
-                            )}
-                          </div>
-                        </div>
+                        {group.color_code && (
+                          <div
+                            className="w-6 h-6 rounded-full border border-gray-300"
+                            style={{ backgroundColor: group.color_code }}
+                          />
+                        )}
+                        <span className="font-medium">{group.color}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Size Selection (only show if color is selected) */}
+              {selectedColor && availableSizes.length > 0 && (
+                <div className="mb-6">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Select Size
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {availableSizes.map((variant) => (
+                      <button
+                        key={variant.id}
+                        onClick={() => setSelectedSize(variant.size)}
+                        disabled={!variant.in_stock}
+                        className={`px-4 py-2 rounded-lg border-2 transition-colors font-medium ${
+                          selectedSize === variant.size
+                            ? 'border-primary-600 bg-primary-600 text-white'
+                            : variant.in_stock
+                            ? 'border-gray-300 hover:border-gray-400 text-gray-700'
+                            : 'border-gray-200 text-gray-400 cursor-not-allowed opacity-50'
+                        }`}
+                      >
+                        {variant.size}
+                        {!variant.in_stock && (
+                          <span className="block text-xs mt-1">Out of Stock</span>
+                        )}
                       </button>
                     ))}
                   </div>
