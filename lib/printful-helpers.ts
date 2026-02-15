@@ -192,7 +192,65 @@ export async function getPrintfulStoreProduct(storeProductId: string): Promise<a
     }
 
     const data = await response.json()
-    return data.result
+    const storeProduct = data.result
+    
+    // Log the full structure for debugging
+    console.log('📦 Printful store product response:', JSON.stringify(storeProduct, null, 2))
+    console.log('🔍 Store product keys:', Object.keys(storeProduct))
+    console.log('🖼️ Image-related fields:', {
+      hasFiles: !!storeProduct.files,
+      filesLength: storeProduct.files?.length || 0,
+      hasImage: !!storeProduct.image,
+      hasThumbnail: !!storeProduct.thumbnail,
+      hasPreview: !!storeProduct.preview_url,
+      productId: storeProduct.product_id,
+    })
+    
+    // If store product has a product_id, try to get image from catalog product
+    if (storeProduct.product_id && (!storeProduct.files || storeProduct.files.length === 0)) {
+      try {
+        console.log(`📡 Fetching catalog product ${storeProduct.product_id} for image...`)
+        const catalogResponse = await fetch(`${PRINTFUL_API_BASE}/products/${storeProduct.product_id}`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Type': 'application/json',
+          },
+        })
+        
+        if (catalogResponse.ok) {
+          const catalogData = await catalogResponse.json()
+          const catalogProduct = catalogData.result?.product
+          
+          if (catalogProduct) {
+            console.log('✅ Got catalog product, checking for images...')
+            console.log('🔍 Catalog product keys:', Object.keys(catalogProduct))
+            
+            // Try to get image from catalog product
+            if (catalogProduct.image) {
+              storeProduct.image = catalogProduct.image
+              console.log('✅ Found image in catalog product.image')
+            }
+            if (catalogProduct.thumbnail_url) {
+              storeProduct.thumbnail_url = catalogProduct.thumbnail_url
+              console.log('✅ Found image in catalog product.thumbnail_url')
+            }
+            // Catalog products might have variants with images
+            if (catalogProduct.variants && catalogProduct.variants.length > 0) {
+              const firstVariant = catalogProduct.variants[0]
+              if (firstVariant.image && !storeProduct.image) {
+                storeProduct.image = firstVariant.image
+                console.log('✅ Found image in catalog product variant.image')
+              }
+            }
+          }
+        }
+      } catch (catalogError) {
+        console.warn('Could not fetch catalog product for image:', catalogError)
+      }
+    }
+    
+    return storeProduct
   } catch (error) {
     console.error('Error fetching Printful store product:', error)
     throw error
