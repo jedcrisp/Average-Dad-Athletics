@@ -325,32 +325,64 @@ export default function ProductDetailPage() {
                     Select Color
                   </label>
                   <div className="flex flex-wrap gap-3">
-                    {colorGroups.map((group) => (
-                      <button
-                        key={group.color}
-                        onClick={() => {
-                          setSelectedColor(group.color)
-                          // Auto-select first available size for this color
-                          const firstSize = group.variants.find(v => v.in_stock)?.size || group.variants[0]?.size
-                          if (firstSize) {
-                            setSelectedSize(firstSize)
-                          }
-                        }}
-                        className={`flex items-center gap-2 px-4 py-2 rounded-lg border-2 transition-colors ${
-                          selectedColor === group.color
-                            ? 'border-primary-600 bg-primary-50'
-                            : 'border-gray-200 hover:border-gray-300'
-                        }`}
-                      >
-                        {group.color_code && (
+                    {colorGroups.map((group) => {
+                      // Map color names to actual color values if color_code is not accurate
+                      const getColorValue = (colorName: string, colorCode: string) => {
+                        const colorMap: { [key: string]: string } = {
+                          'sage': '#87AE73',
+                          'black': '#000000',
+                          'white': '#FFFFFF',
+                          'gray': '#808080',
+                          'grey': '#808080',
+                          'navy': '#000080',
+                          'blue': '#0000FF',
+                          'red': '#FF0000',
+                          'green': '#008000',
+                          'brown': '#A52A2A',
+                          'tan': '#D2B48C',
+                          'beige': '#F5F5DC',
+                          'cream': '#FFFDD0',
+                          'olive': '#808000',
+                          'maroon': '#800000',
+                          'burgundy': '#800020',
+                          'charcoal': '#36454F',
+                          'heather': '#B4B4B4',
+                          'heather gray': '#B4B4B4',
+                          'heather grey': '#B4B4B4',
+                        }
+                        
+                        const normalizedName = colorName.toLowerCase().trim()
+                        return colorMap[normalizedName] || colorCode || '#CCCCCC'
+                      }
+                      
+                      const displayColor = getColorValue(group.color, group.color_code)
+                      
+                      return (
+                        <button
+                          key={group.color}
+                          onClick={() => {
+                            setSelectedColor(group.color)
+                            // Auto-select first available size for this color
+                            const firstSize = group.variants.find(v => v.in_stock)?.size || group.variants[0]?.size
+                            if (firstSize) {
+                              setSelectedSize(firstSize)
+                            }
+                          }}
+                          className={`flex items-center gap-2 px-4 py-2 rounded-lg border-2 transition-colors ${
+                            selectedColor === group.color
+                              ? 'border-primary-600 bg-primary-50'
+                              : 'border-gray-200 hover:border-gray-300'
+                          }`}
+                        >
                           <div
                             className="w-6 h-6 rounded-full border border-gray-300"
-                            style={{ backgroundColor: group.color_code }}
+                            style={{ backgroundColor: displayColor }}
+                            title={group.color}
                           />
-                        )}
-                        <span className="font-medium">{group.color}</span>
-                      </button>
-                    ))}
+                          <span className="font-medium">{group.color}</span>
+                        </button>
+                      )
+                    })}
                   </div>
                 </div>
               )}
