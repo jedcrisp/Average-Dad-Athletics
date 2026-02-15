@@ -100,12 +100,17 @@ export async function GET(
           // Get price - Printful returns price as string
           const variantPrice = v.retail_price || v.price || '24.99'
           
+          // Extract variant image - Printful variants have an 'image' field
+          // This is the color-specific image from Printful
+          const variantImageUrl = v.image || null
+          
           console.log(`  Catalog Variant ${v.id}: ${v.name || `${v.size} - ${v.color}`}`)
           console.log(`    - availability_status: ${v.availability_status || 'not set'}`)
           console.log(`    - in_stock field: ${v.in_stock}`)
           console.log(`    - calculated in_stock: ${finalInStock}`)
           console.log(`    - price: ${variantPrice}`)
-          console.log(`    - image: ${variantImage ? variantImage.substring(0, 50) + '...' : 'no image'}`)
+          console.log(`    - variant image from Printful: ${variantImageUrl ? variantImageUrl.substring(0, 80) + '...' : 'NO IMAGE'}`)
+          console.log(`    - variant keys:`, Object.keys(v))
           
           return {
             id: v.id,
@@ -113,7 +118,7 @@ export async function GET(
             size: v.size || '',
             color: v.color || '',
             color_code: v.color_code || '#000000',
-            image: variantImage,
+            image: variantImageUrl || image, // Use variant image if available, fallback to product image
             price: variantPrice,
             in_stock: finalInStock,
             availability_status: v.availability_status,

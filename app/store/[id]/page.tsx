@@ -49,13 +49,16 @@ export default function ProductDetailPage() {
   const [checkoutLoading, setCheckoutLoading] = useState(false)
   const [addedToCart, setAddedToCart] = useState(false)
   
-  // Group variants by color
+  // Group variants by color and get the best image for each color
   const colorGroups = product?.variants.reduce((groups: ColorGroup[], variant) => {
     const existingGroup = groups.find(g => g.color === variant.color)
     if (existingGroup) {
       existingGroup.variants.push(variant)
-      // Use variant image if available and group doesn't have one
-      if (!existingGroup.image && variant.image) {
+      // Use variant image if available (prefer first in-stock variant's image)
+      if (variant.image && variant.in_stock && !existingGroup.image) {
+        existingGroup.image = variant.image
+      } else if (variant.image && !existingGroup.image) {
+        // Fallback to any variant image if no in-stock variant has one
         existingGroup.image = variant.image
       }
     } else {
@@ -63,11 +66,22 @@ export default function ProductDetailPage() {
         color: variant.color,
         color_code: variant.color_code,
         variants: [variant],
-        image: variant.image || undefined,
+        image: variant.image || undefined, // Use variant's image from Printful
       })
     }
     return groups
   }, []) || []
+  
+  // Log color groups for debugging
+  useEffect(() => {
+    if (colorGroups.length > 0) {
+      console.log('🎨 Color groups:', colorGroups.map(g => ({
+        color: g.color,
+        image: g.image ? g.image.substring(0, 60) + '...' : 'no image',
+        variantCount: g.variants.length,
+      })))
+    }
+  }, [colorGroups])
   
   // Get available sizes for selected color
   const availableSizes = selectedColor
@@ -237,31 +251,45 @@ export default function ProductDetailPage() {
             <div className="md:w-1/2">
               <div className="aspect-square bg-gray-200 relative overflow-hidden">
                 {(() => {
-                  // Get image for selected color, or fall back to product image
+                  // Get image for selected color from Printful variant images
                   let displayImage = product.image
                   
                   if (selectedColor) {
                     const colorGroup = colorGroups.find(g => g.color === selectedColor)
+                    console.log(`🖼️ Selected color: ${selectedColor}, color group image:`, colorGroup?.image ? colorGroup.image.substring(0, 60) + '...' : 'none')
+                    
+                    // Priority: color group image (from Printful variant) > selected variant image > product image
                     if (colorGroup?.image) {
                       displayImage = colorGroup.image
+                      console.log(`✅ Using color group image for ${selectedColor}`)
                     } else if (selectedVariant?.image) {
                       displayImage = selectedVariant.image
+                      console.log(`✅ Using selected variant image`)
+                    } else {
+                      console.log(`⚠️ No variant image found, using product image`)
                     }
                   }
                   
+                  console.log(`🖼️ Final display image:`, displayImage ? displayImage.substring(0, 60) + '...' : 'none')
+                  
                   return displayImage ? (
                     <img
+                      key={displayImage} // Force re-render when image changes
                       src={displayImage}
                       alt={`${product.name} - ${selectedColor || ''}`}
                       className="w-full h-full object-cover transition-opacity duration-300"
                       onError={(e) => {
                         // Fallback to product image if variant image fails
                         const target = e.target as HTMLImageElement
+                        console.error(`❌ Image failed to load: ${target.src}`)
                         if (target.src !== product.image) {
                           target.src = product.image || 'https://via.placeholder.com/800x800/cccccc/666666?text=Product+Image'
                         } else {
                           target.src = 'https://via.placeholder.com/800x800/cccccc/666666?text=Product+Image'
                         }
+                      }}
+                      onLoad={() => {
+                        console.log(`✅ Image loaded successfully: ${displayImage?.substring(0, 60)}...`)
                       }}
                     />
                   ) : (
