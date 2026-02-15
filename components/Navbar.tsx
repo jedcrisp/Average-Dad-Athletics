@@ -3,13 +3,16 @@
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
+import { useCart } from '@/contexts/CartContext'
 import { isAdmin } from '@/lib/admin-helpers'
-import { Bars3Icon, XMarkIcon, UserIcon } from '@heroicons/react/24/outline'
+import { Bars3Icon, XMarkIcon, UserIcon, ShoppingCartIcon } from '@heroicons/react/24/outline'
 
 export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const { user, signOut } = useAuth()
+  const { getTotalItems } = useCart()
   const [userIsAdmin, setUserIsAdmin] = useState(false)
+  const cartItemCount = getTotalItems()
 
   useEffect(() => {
     const checkAdmin = async () => {
@@ -47,6 +50,14 @@ export default function Navbar() {
             </Link>
             <Link href="/store" className="text-gray-700 hover:text-primary-600 font-medium transition-colors">
               Store
+            </Link>
+            <Link href="/store/cart" className="relative text-gray-700 hover:text-primary-600 font-medium transition-colors">
+              <ShoppingCartIcon className="w-6 h-6" />
+              {cartItemCount > 0 && (
+                <span className="absolute -top-2 -right-2 bg-primary-600 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                  {cartItemCount > 9 ? '9+' : cartItemCount}
+                </span>
+              )}
             </Link>
             {user && (
               <Link href="/profile" className="text-gray-700 hover:text-primary-600 font-medium transition-colors">
@@ -128,6 +139,21 @@ export default function Navbar() {
               onClick={() => setMobileMenuOpen(false)}
             >
               Store
+            </Link>
+            <Link
+              href="/store/cart"
+              className="relative block px-3 py-2 text-gray-700 hover:bg-primary-50 rounded-md"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              <div className="flex items-center gap-2">
+                <ShoppingCartIcon className="w-5 h-5" />
+                Cart
+                {cartItemCount > 0 && (
+                  <span className="bg-primary-600 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                    {cartItemCount > 9 ? '9+' : cartItemCount}
+                  </span>
+                )}
+              </div>
             </Link>
             {user && (
               <Link

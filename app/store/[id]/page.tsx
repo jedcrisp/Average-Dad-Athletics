@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
+import { useCart } from '@/contexts/CartContext'
 
 interface ProductVariant {
   id: number
@@ -30,12 +31,14 @@ export default function ProductDetailPage() {
   const params = useParams()
   const router = useRouter()
   const { user } = useAuth()
+  const { addItem } = useCart()
   const [product, setProduct] = useState<StoreProduct | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null)
   const [quantity, setQuantity] = useState(1)
   const [checkoutLoading, setCheckoutLoading] = useState(false)
+  const [addedToCart, setAddedToCart] = useState(false)
 
   useEffect(() => {
     if (params.id) {
@@ -61,6 +64,30 @@ export default function ProductDetailPage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleAddToCart = () => {
+    if (!selectedVariant) {
+      alert('Please select a variant')
+      return
+    }
+
+    if (!product) return
+
+    addItem({
+      productId: product.id,
+      productName: product.name,
+      productImage: product.image,
+      variantId: selectedVariant.id,
+      variantName: selectedVariant.name,
+      size: selectedVariant.size,
+      color: selectedVariant.color,
+      price: parseFloat(selectedVariant.price),
+      quantity: quantity,
+    })
+
+    setAddedToCart(true)
+    setTimeout(() => setAddedToCart(false), 3000)
   }
 
   const handleCheckout = async () => {
@@ -145,12 +172,12 @@ export default function ProductDetailPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="bg-white rounded-lg shadow-lg overflow-hidden">
           <div className="md:flex">
-            {/* Product Image */}
+            {/* Product Image - Use product image (same as storefront) */}
             <div className="md:w-1/2">
               <div className="aspect-square bg-gray-200 relative overflow-hidden">
-                {selectedVariant?.image || product.image ? (
+                {product.image ? (
                   <img
-                    src={selectedVariant?.image || product.image}
+                    src={product.image}
                     alt={product.name}
                     className="w-full h-full object-cover"
                     onError={(e) => {
@@ -241,14 +268,23 @@ export default function ProductDetailPage() {
                 </p>
               </div>
 
-              {/* Add to Cart / Checkout Button */}
-              <button
-                onClick={handleCheckout}
-                disabled={checkoutLoading || !selectedVariant?.in_stock}
-                className="w-full px-6 py-3 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {checkoutLoading ? 'Processing...' : 'Buy Now'}
-              </button>
+              {/* Add to Cart / Checkout Buttons */}
+              <div className="flex gap-3">
+                <button
+                  onClick={handleAddToCart}
+                  disabled={!selectedVariant?.in_stock}
+                  className="flex-1 px-6 py-3 bg-white border-2 border-primary-600 text-primary-600 rounded-lg font-medium hover:bg-primary-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {addedToCart ? 'Added to Cart!' : 'Add to Cart'}
+                </button>
+                <button
+                  onClick={handleCheckout}
+                  disabled={checkoutLoading || !selectedVariant?.in_stock}
+                  className="flex-1 px-6 py-3 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {checkoutLoading ? 'Processing...' : 'Buy Now'}
+                </button>
+              </div>
 
               {!selectedVariant?.in_stock && (
                 <p className="mt-2 text-sm text-red-600 text-center">
