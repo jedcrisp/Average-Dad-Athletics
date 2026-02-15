@@ -179,7 +179,29 @@ export default function ForumPostPage() {
               </>
             )}
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-4">{post.title}</h1>
+          <div className="flex items-start justify-between gap-4 mb-4">
+            <h1 className="text-3xl font-bold text-gray-900 flex-1">{post.title}</h1>
+            {user && (
+              <button
+                onClick={handleToggleFavorite}
+                disabled={togglingFavorite}
+                className={`p-2 rounded-lg transition-colors flex-shrink-0 ${
+                  isFavorited
+                    ? 'text-yellow-500 hover:bg-yellow-50'
+                    : 'text-gray-400 hover:bg-gray-100 hover:text-yellow-500'
+                } disabled:opacity-50`}
+                title={isFavorited ? 'Remove from favorites' : 'Add to favorites'}
+              >
+                {togglingFavorite ? (
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-yellow-500"></div>
+                ) : isFavorited ? (
+                  <StarIconSolid className="w-6 h-6" />
+                ) : (
+                  <StarIcon className="w-6 h-6" />
+                )}
+              </button>
+            )}
+          </div>
           
           <div className="flex items-center gap-6 text-sm text-gray-500 mb-6">
             <div className="flex items-center gap-1">
