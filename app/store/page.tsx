@@ -26,12 +26,24 @@ export default function StorePage() {
   const fetchProducts = async () => {
     try {
       setLoading(true)
+      setError(null)
+      console.log('Fetching products from API...')
       const response = await fetch('/api/store/products')
       if (!response.ok) {
-        throw new Error('Failed to fetch products')
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || 'Failed to fetch products')
       }
       const data = await response.json()
+      console.log('Products API response:', {
+        source: data.source,
+        productCount: data.products?.length || 0,
+        message: data.message,
+      })
       setProducts(data.products || [])
+      
+      if (data.message) {
+        console.warn('API message:', data.message)
+      }
     } catch (err: any) {
       setError(err.message || 'Failed to load products')
       console.error('Error fetching products:', err)
