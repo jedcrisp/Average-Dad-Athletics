@@ -47,29 +47,45 @@ export default function AdminStoreSyncPage() {
   }, [user, authLoading, router, devBypass])
 
   const handleSync = async () => {
+    console.log('🔄 Starting sync from frontend...')
     setSyncing(true)
     setError('')
     setSuccess(false)
     setSyncResult(null)
 
     try {
+      console.log('📡 Calling /api/admin/store/sync...')
       const response = await fetch('/api/admin/store/sync', {
         method: 'POST',
       })
 
+      console.log('📥 Response status:', response.status, response.statusText)
+
       if (!response.ok) {
         const errorData = await response.json()
-        throw new Error(errorData.error || 'Failed to sync products')
+        console.error('❌ Error response:', errorData)
+        throw new Error(errorData.error || errorData.message || 'Failed to sync products')
       }
 
       const data = await response.json()
+      console.log('✅ Sync response:', data)
       setSyncResult(data)
       setSuccess(true)
+      
+      if (data.debug) {
+        console.log('🔍 Debug info:', data.debug)
+      }
     } catch (err: any) {
+      console.error('❌ Sync error caught:', err)
+      console.error('Error details:', {
+        message: err.message,
+        stack: err.stack,
+        name: err.name,
+      })
       setError(err.message || 'Failed to sync products from Printful')
-      console.error('Sync error:', err)
     } finally {
       setSyncing(false)
+      console.log('🏁 Sync process completed')
     }
   }
 

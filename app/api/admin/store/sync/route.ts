@@ -4,28 +4,70 @@ import { collection, doc, setDoc, getDocs, query } from 'firebase/firestore'
 import { db } from '@/lib/firebase-client'
 
 export async function POST() {
+  console.log('=== SYNC STARTED ===')
+  console.log('Timestamp:', new Date().toISOString())
+  
   try {
     // Verify admin access (you can add admin verification here)
     // For now, we'll allow the sync - add proper auth checks in production
 
+    // Check Firebase
     if (!db) {
+      console.error('❌ Firebase is not configured')
       throw new Error('Firebase is not configured')
     }
+    console.log('✅ Firebase is configured')
+
+    // Check Printful API key
+    const apiKey = process.env.PRINTFUL_API_KEY
+    if (!apiKey) {
+      console.error('❌ PRINTFUL_API_KEY is not set')
+      throw new Error('PRINTFUL_API_KEY is not set in environment variables')
+    }
+    console.log('✅ Printful API key is set (length:', apiKey.length, ')')
 
     // Fetch products from Printful
-    console.log('Fetching products from Printful...')
-    const printfulProducts = await getPrintfulProducts()
-    console.log(`Received ${printfulProducts.length} products from Printful`)
+    console.log('📡 Fetching products from Printful API...')
+    console.log('API Endpoint: https://api.printful.com/store/products')
+    
+    let printfulProducts
+    try {
+      printfulProducts = await getPrintfulProducts()
+      console.log(`✅ Received ${printfulProducts.length} products from Printful API`)
+    } catch (fetchError: any) {
+      console.error('❌ Error fetching from Printful:', fetchError)
+      console.error('Error details:', {
+        message: fetchError.message,
+        stack: fetchError.stack,
+      })
+      throw fetchError
+    }
     
     if (printfulProducts.length === 0) {
+      console.warn('⚠️ No products returned from Printful')
+      console.log('This could mean:')
+      console.log('  1. No products in your Printful store')
+      console.log('  2. All products are discontinued')
+      console.log('  3. API endpoint or response structure issue')
+      
       return NextResponse.json({
         success: true,
         synced: 0,
         failed: 0,
         products: [],
         message: 'No products found in Printful store. Make sure you have added products to your Printful store first.',
+        debug: {
+          apiKeySet: !!apiKey,
+          apiKeyLength: apiKey?.length || 0,
+          productsReceived: 0,
+        },
       })
     }
+
+    console.log('📦 Processing products:')
+    printfulProducts.forEach((p: any, index: number) => {
+      console.log(`  ${index + 1}. ID: ${p.id}, Name: ${p.name}, Discontinued: ${p.is_discontinued}`)
+    })
 
     const syncedProducts: any[] = []
     let syncedCount = 0
@@ -33,13 +75,21 @@ export async function POST() {
     let skippedCount = 0
 
     // Sync each product to Firestore
+    console.log('💾 Starting Firestore sync...')
     for (const product of printfulProducts) {
       try {
-        console.log(`Processing product: ${product.id} - ${product.name}`)
+        console.log(`\n🔄 Processing product: ${product.id} - ${product.name}`)
+        console.log('   Product data:', {
+          id: product.id,
+          name: product.name,
+          is_discontinued: product.is_discontinued,
+          hasFiles: !!(product.files && product.files.length > 0),
+          fileCount: product.files?.length || 0,
+        })
         
         // Skip discontinued products
         if (product.is_discontinued) {
-          console.log(`Skipping discontinued product: ${product.id}`)
+          console.log(`   ⏭️ Skipping discontinued product: ${product.id}`)
           skippedCount++
           continue
         }
@@ -74,8 +124,10 @@ export async function POST() {
         }
 
         // Save to Firestore
+        console.log(`   💾 Saving to Firestore: storeProducts/${product.id.toString()}`)
         const productRef = doc(db, 'storeProducts', product.id.toString())
         await setDoc(productRef, productData, { merge: true })
+        console.log(`   ✅ Successfully saved product ${product.id} to Firestore`)
 
         syncedProducts.push({
           id: product.id.toString(),
@@ -83,12 +135,25 @@ export async function POST() {
         })
         syncedCount++
       } catch (error: any) {
-        console.error(`Error syncing product ${product.id}:`, error)
+        console.error(`   ❌ Error syncing product ${product.id}:`, error)
+        console.error('   Error details:', {
+          message: error.message,
+          code: error.code,
+          stack: error.stack,
+        })
         failedCount++
       }
     }
+    
+    console.log('\n=== SYNC COMPLETE ===')
+    console.log('Summary:', {
+      total: printfulProducts.length,
+      synced: syncedCount,
+      skipped: skippedCount,
+      failed: failedCount,
+    })
 
-    return NextResponse.json({
+    const result = {
       success: true,
       synced: syncedCount,
       failed: failedCount,
@@ -98,13 +163,28 @@ export async function POST() {
       message: syncedCount === 0 
         ? 'No products were synced. Check if products exist in Printful and are not discontinued.'
         : `Successfully synced ${syncedCount} product(s)`,
-    })
+    }
+    
+    console.log('📤 Returning result:', result)
+    return NextResponse.json(result)
   } catch (error: any) {
-    console.error('Error syncing products from Printful:', error)
+    console.error('\n❌ === SYNC FAILED ===')
+    console.error('Error:', error)
+    console.error('Error details:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name,
+    })
+    
     return NextResponse.json(
       { 
         error: 'Failed to sync products',
-        message: error.message 
+        message: error.message,
+        debug: {
+          hasApiKey: !!process.env.PRINTFUL_API_KEY,
+          hasFirebase: !!db,
+          errorType: error.name,
+        },
       },
       { status: 500 }
     )
