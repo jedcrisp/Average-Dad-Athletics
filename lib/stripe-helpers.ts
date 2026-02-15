@@ -29,17 +29,33 @@ export async function createCheckoutSession(
   items: CheckoutItem[],
   successUrl: string,
   cancelUrl: string,
-  metadata?: Record<string, string>
+  metadata?: Record<string, string>,
+  shippingAddressCollection?: boolean,
+  shippingOptions?: Stripe.Checkout.SessionCreateParams.ShippingOption[]
 ): Promise<Stripe.Checkout.Session> {
   try {
-    const session = await stripe.checkout.sessions.create({
+    const sessionParams: Stripe.Checkout.SessionCreateParams = {
       payment_method_types: ['card'],
       line_items: items,
       mode: 'payment',
       success_url: successUrl,
       cancel_url: cancelUrl,
       metadata: metadata || {},
-    })
+    }
+
+    // Enable shipping address collection if requested
+    if (shippingAddressCollection) {
+      sessionParams.shipping_address_collection = {
+        allowed_countries: ['US', 'CA', 'GB', 'AU'], // Add more countries as needed
+      }
+    }
+
+    // Add shipping options if provided
+    if (shippingOptions && shippingOptions.length > 0) {
+      sessionParams.shipping_options = shippingOptions
+    }
+
+    const session = await stripe.checkout.sessions.create(sessionParams)
 
     return session
   } catch (error) {
