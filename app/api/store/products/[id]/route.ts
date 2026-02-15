@@ -53,31 +53,67 @@ export async function GET(
       finalImage: image,
     })
 
-    // Get variants from the catalog product
+    // Get variants - try store product variants first, then catalog variants
     let variants: any[] = []
-    if (storeProduct.product_id) {
+    
+    // First, check if store product has variants directly
+    console.log('🔍 Checking for variants in store product...')
+    console.log('Store product keys:', Object.keys(storeProduct))
+    console.log('Store product has variants?', !!storeProduct.variants)
+    console.log('Store product has sync_variants?', !!storeProduct.sync_variants)
+    
+    if (storeProduct.sync_variants && Array.isArray(storeProduct.sync_variants) && storeProduct.sync_variants.length > 0) {
+      console.log(`📦 Found ${storeProduct.sync_variants.length} sync_variants in store product`)
+      variants = storeProduct.sync_variants.map((v: any) => {
+        const variantId = v.variant_id || v.id
+        const isInStock = v.is_enabled !== false && v.availability_status !== 'out_of_stock'
+        
+        console.log(`  Store Variant ${variantId}: enabled=${v.is_enabled}, status=${v.availability_status}, in_stock=${isInStock}`)
+        
+        return {
+          id: variantId,
+          name: v.name || `${v.size || ''} - ${v.color || ''}`,
+          size: v.size || '',
+          color: v.color || '',
+          color_code: v.color_code || '#000000',
+          image: v.image || image,
+          price: v.retail_price || v.price || '24.99',
+          in_stock: isInStock,
+          availability_status: v.availability_status,
+        }
+      })
+    } else if (storeProduct.product_id) {
+      // Fallback: Get variants from catalog product
+      console.log(`📡 Fetching variants from catalog product ${storeProduct.product_id}...`)
       try {
         const catalogVariants = await getPrintfulProductVariants(storeProduct.product_id)
-        console.log(`📦 Processing ${catalogVariants.length} variants...`)
+        console.log(`📦 Processing ${catalogVariants.length} catalog variants...`)
         
         variants = catalogVariants.map((v: any) => {
           // Determine stock status - Printful uses availability_status
           // 'in_stock', 'out_of_stock', 'discontinued', 'preorder', etc.
-          const availabilityStatus = v.availability_status?.toLowerCase() || ''
-          const isInStock = availabilityStatus === 'in_stock' || 
-                          (v.in_stock === true && availabilityStatus !== 'out_of_stock' && availabilityStatus !== 'discontinued')
+          const availabilityStatus = (v.availability_status || '').toLowerCase()
+          // Default to in_stock unless explicitly out_of_stock or discontinued
+          const isInStock = availabilityStatus !== 'out_of_stock' && 
+                          availabilityStatus !== 'discontinued' &&
+                          (v.in_stock !== false)
           
           // Use variant-specific image if available, otherwise use product image
           const variantImage = v.image || image
           
           // Get price - Printful returns price as string
-          const variantPrice = v.price || '24.99'
+          const variantPrice = v.retail_price || v.price || '24.99'
           
-          console.log(`  Variant ${v.id}: ${v.name} - Stock: ${isInStock} (status: ${v.availability_status}, in_stock: ${v.in_stock})`)
+          console.log(`  Catalog Variant ${v.id}: ${v.name || `${v.size} - ${v.color}`}`)
+          console.log(`    - availability_status: ${v.availability_status}`)
+          console.log(`    - in_stock: ${v.in_stock}`)
+          console.log(`    - calculated in_stock: ${isInStock}`)
+          console.log(`    - price: ${variantPrice}`)
+          console.log(`    - image: ${variantImage ? 'yes' : 'no'}`)
           
           return {
             id: v.id,
-            name: v.name || `${v.size} - ${v.color}`,
+            name: v.name || `${v.size || ''} - ${v.color || ''}`,
             size: v.size || '',
             color: v.color || '',
             color_code: v.color_code || '#000000',
@@ -89,8 +125,12 @@ export async function GET(
         })
         
         console.log(`✅ Processed ${variants.length} variants`)
-      } catch (variantError) {
+      } catch (variantError: any) {
         console.error('❌ Could not fetch variants:', variantError)
+        console.error('Error details:', {
+          message: variantError.message,
+          stack: variantError.stack,
+        })
         console.warn('Using fallback variants')
         // Fallback to basic variants if catalog fetch fails
         variants = [
@@ -100,8 +140,10 @@ export async function GET(
         ]
       }
     } else {
-      console.warn('⚠️ Store product has no product_id, cannot fetch variants')
+      console.warn('⚠️ Store product has no product_id and no sync_variants, cannot fetch variants')
     }
+    
+    console.log(`📤 Returning ${variants.length} variants to frontend`)
 
     const product = {
       id: productId,
