@@ -10,9 +10,10 @@ import {
   OAuthProvider,
   signOut as firebaseSignOut,
   createUserWithEmailAndPassword,
-  updateProfile
+  updateProfile,
+  deleteUser
 } from 'firebase/auth'
-import { doc, getDoc, setDoc } from 'firebase/firestore'
+import { doc, getDoc, setDoc, deleteDoc } from 'firebase/firestore'
 import { auth, db } from '@/lib/firebase-client'
 import { isFirebaseConfigured } from '@/lib/firebase-config'
 
@@ -24,6 +25,7 @@ interface AuthContextType {
   signInWithApple: () => Promise<void>
   signOut: () => Promise<void>
   register: (name: string, email: string, password: string) => Promise<void>
+  deleteAccount: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -282,6 +284,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await firebaseSignOut(auth)
   }
 
+  const deleteAccount = async () => {
+    if (!auth || !user) {
+      throw new Error('Firebase Auth is not configured or user not found')
+    }
+
+    try {
+      // Delete user data from Firestore
+      if (db) {
+        const userRef = doc(db, 'users', user.uid)
+        try {
+          await deleteDoc(userRef)
+        } catch (error: any) {
+          // Log but don't fail if Firestore delete fails
+          console.warn('Error deleting user data from Firestore:', error)
+        }
+      }
+
+      // Delete user from Firebase Auth
+      await deleteUser(user)
+    } catch (error: any) {
+      console.error('Error deleting account:', error)
+      throw error
+    }
+  }
+
   const value = {
     user,
     loading,
@@ -290,6 +317,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     signInWithApple,
     signOut,
     register,
+    deleteAccount,
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

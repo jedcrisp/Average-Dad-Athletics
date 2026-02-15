@@ -45,6 +45,9 @@ export default function Navbar() {
             <Link href="/forum" className="text-gray-700 hover:text-primary-600 font-medium transition-colors">
               Forum
             </Link>
+            <Link href="/store" className="text-gray-700 hover:text-primary-600 font-medium transition-colors">
+              Store
+            </Link>
             {user && (
               <Link href="/profile" className="text-gray-700 hover:text-primary-600 font-medium transition-colors">
                 Profile
@@ -118,6 +121,13 @@ export default function Navbar() {
               onClick={() => setMobileMenuOpen(false)}
             >
               Forum
+            </Link>
+            <Link
+              href="/store"
+              className="block px-3 py-2 text-gray-700 hover:bg-primary-50 rounded-md"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Store
             </Link>
             {user && (
               <Link

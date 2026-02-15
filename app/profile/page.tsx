@@ -5,15 +5,17 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useRouter } from 'next/navigation'
 import { doc, getDoc } from 'firebase/firestore'
 import { db } from '@/lib/firebase-client'
-import { UserIcon, EnvelopeIcon, CalendarIcon, ArrowRightOnRectangleIcon } from '@heroicons/react/24/outline'
+import { UserIcon, EnvelopeIcon, CalendarIcon, ArrowRightOnRectangleIcon, TrashIcon } from '@heroicons/react/24/outline'
 
 export default function ProfilePage() {
-  const { user, loading: authLoading, signOut } = useAuth()
+  const { user, loading: authLoading, signOut, deleteAccount } = useAuth()
   const router = useRouter()
   const [userData, setUserData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [mounted, setMounted] = useState(false)
   const [signingOut, setSigningOut] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [deleting, setDeleting] = useState(false)
 
   useEffect(() => {
     setMounted(true)
@@ -171,27 +173,79 @@ export default function ProfilePage() {
                 </div>
               </div>
 
-              {/* Sign Out */}
-              <div className="pt-6 border-t">
-                <button
-                  onClick={async () => {
-                    setSigningOut(true)
-                    try {
-                      await signOut()
-                      router.push('/')
-                    } catch (error) {
-                      console.error('Error signing out:', error)
-                    } finally {
-                      setSigningOut(false)
-                    }
-                  }}
-                  disabled={signingOut}
-                  className="w-full md:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <ArrowRightOnRectangleIcon className="w-5 h-5" />
-                  {signingOut ? 'Signing Out...' : 'Sign Out'}
-                </button>
+              {/* Account Actions */}
+              <div className="pt-6 border-t space-y-4">
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <button
+                    onClick={async () => {
+                      setSigningOut(true)
+                      try {
+                        await signOut()
+                        router.push('/')
+                      } catch (error) {
+                        console.error('Error signing out:', error)
+                      } finally {
+                        setSigningOut(false)
+                      }
+                    }}
+                    disabled={signingOut}
+                    className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <ArrowRightOnRectangleIcon className="w-5 h-5" />
+                    {signingOut ? 'Signing Out...' : 'Sign Out'}
+                  </button>
+                  
+                  <button
+                    onClick={() => setShowDeleteConfirm(true)}
+                    disabled={deleting || signingOut}
+                    className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-gray-600 text-white rounded-lg font-medium hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <TrashIcon className="w-5 h-5" />
+                    Delete Account
+                  </button>
+                </div>
               </div>
+
+              {/* Delete Confirmation Modal */}
+              {showDeleteConfirm && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                  <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+                    <h3 className="text-xl font-bold text-gray-900 mb-4">Delete Account</h3>
+                    <p className="text-gray-600 mb-6">
+                      Are you sure you want to delete your account? This action cannot be undone. All your data, including forum posts and workout submissions, will be permanently deleted.
+                    </p>
+                    <div className="flex gap-4">
+                      <button
+                        onClick={async () => {
+                          setDeleting(true)
+                          try {
+                            await deleteAccount()
+                            router.push('/')
+                          } catch (error: any) {
+                            console.error('Error deleting account:', error)
+                            alert(error.message || 'Failed to delete account. Please try again.')
+                            setDeleting(false)
+                          }
+                        }}
+                        disabled={deleting}
+                        className="flex-1 px-6 py-3 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {deleting ? 'Deleting...' : 'Yes, Delete Account'}
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowDeleteConfirm(false)
+                          setDeleting(false)
+                        }}
+                        disabled={deleting}
+                        className="flex-1 px-6 py-3 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
