@@ -125,9 +125,22 @@ export async function POST() {
 
         // Save to Firestore
         console.log(`   💾 Saving to Firestore: storeProducts/${product.id.toString()}`)
-        const productRef = doc(db, 'storeProducts', product.id.toString())
-        await setDoc(productRef, productData, { merge: true })
-        console.log(`   ✅ Successfully saved product ${product.id} to Firestore`)
+        console.log(`   📝 Product data to save:`, JSON.stringify(productData, null, 2))
+        
+        try {
+          const productRef = doc(db, 'storeProducts', product.id.toString())
+          console.log(`   🔄 Calling setDoc...`)
+          await setDoc(productRef, productData, { merge: true })
+          console.log(`   ✅ Successfully saved product ${product.id} to Firestore`)
+        } catch (firestoreError: any) {
+          console.error(`   ❌ Firestore save error for product ${product.id}:`, firestoreError)
+          console.error(`   Error details:`, {
+            code: firestoreError.code,
+            message: firestoreError.message,
+            stack: firestoreError.stack,
+          })
+          throw firestoreError // Re-throw to be caught by outer catch
+        }
 
         syncedProducts.push({
           id: product.id.toString(),
@@ -139,8 +152,18 @@ export async function POST() {
         console.error('   Error details:', {
           message: error.message,
           code: error.code,
-          stack: error.stack,
+          name: error.name,
+          stack: error.stack?.substring(0, 500), // First 500 chars of stack
         })
+        
+        // Check for specific error types
+        if (error.code === 'permission-denied') {
+          console.error('   ⚠️ PERMISSION DENIED - Check Firestore security rules for storeProducts collection')
+          console.error('   Make sure admins can write to storeProducts collection')
+        } else if (error.code === 'unavailable') {
+          console.error('   ⚠️ FIRESTORE UNAVAILABLE - Check your internet connection')
+        }
+        
         failedCount++
       }
     }
