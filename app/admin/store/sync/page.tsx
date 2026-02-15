@@ -55,9 +55,25 @@ export default function AdminStoreSyncPage() {
     setSyncResult(null)
 
     try {
+      // Get the user's ID token for authentication
+      let idToken: string | null = null
+      if (user) {
+        try {
+          idToken = await user.getIdToken()
+          console.log('✅ Got auth token')
+        } catch (tokenError) {
+          console.error('❌ Error getting auth token:', tokenError)
+          throw new Error('Failed to get authentication token. Please sign in again.')
+        }
+      }
+
       console.log('📡 Calling /api/admin/store/sync...')
       const response = await fetch('/api/admin/store/sync', {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(idToken && { 'Authorization': `Bearer ${idToken}` }),
+        },
       })
 
       console.log('📥 Response status:', response.status, response.statusText)
