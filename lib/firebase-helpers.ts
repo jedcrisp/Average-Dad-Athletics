@@ -211,6 +211,30 @@ export const submissionHelpers = {
 }
 
 // Forum helpers
+// Store Products helpers
+export const storeProductHelpers = {
+  /**
+   * Get all store products from Firestore
+   */
+  async getAll(): Promise<any[]> {
+    if (!db) throw new Error('Firebase is not configured')
+    const snapshot = await getDocs(collection(db, 'storeProducts'))
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+  },
+
+  /**
+   * Get a single store product by ID
+   */
+  async getById(productId: string): Promise<any | null> {
+    if (!db) throw new Error('Firebase is not configured')
+    const productDoc = await getDoc(doc(db, 'storeProducts', productId))
+    if (productDoc.exists()) {
+      return { id: productDoc.id, ...productDoc.data() }
+    }
+    return null
+  },
+}
+
 export const forumHelpers = {
   // Get all posts, optionally filtered by category
   async getAll(category?: string): Promise<ForumPost[]> {

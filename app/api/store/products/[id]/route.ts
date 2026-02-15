@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { storeProductHelpers } from '@/lib/firebase-helpers'
 import { getPrintfulStoreProduct, getPrintfulProductVariants } from '@/lib/printful-helpers'
 
 export async function GET(
@@ -8,8 +9,13 @@ export async function GET(
   try {
     const { id: productId } = await params
 
-    // Fetch product from Printful store
-    const storeProduct = await getPrintfulStoreProduct(productId)
+    // Try to fetch from Firestore first
+    let storeProduct = await storeProductHelpers.getById(productId)
+    
+    // If not in Firestore, fetch from Printful
+    if (!storeProduct) {
+      storeProduct = await getPrintfulStoreProduct(productId)
+    }
     
     if (!storeProduct) {
       return NextResponse.json(
