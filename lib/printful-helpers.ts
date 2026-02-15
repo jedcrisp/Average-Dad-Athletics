@@ -277,7 +277,16 @@ export async function getPrintfulProductVariants(productId: number): Promise<Pri
     }
 
     const data = await response.json()
-    return data.result?.product?.variants || []
+    const variants = data.result?.product?.variants || []
+    
+    // Log variant structure for debugging
+    console.log(`📦 Fetched ${variants.length} variants for product ${productId}`)
+    if (variants.length > 0) {
+      console.log('📋 First variant sample:', JSON.stringify(variants[0], null, 2))
+      console.log('🔍 Variant keys:', Object.keys(variants[0]))
+    }
+    
+    return variants
   } catch (error) {
     console.error('Error fetching Printful product variants:', error)
     throw error

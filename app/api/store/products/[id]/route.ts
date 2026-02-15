@@ -58,18 +58,40 @@ export async function GET(
     if (storeProduct.product_id) {
       try {
         const catalogVariants = await getPrintfulProductVariants(storeProduct.product_id)
-        variants = catalogVariants.map((v: any) => ({
-          id: v.id,
-          name: v.name,
-          size: v.size,
-          color: v.color,
-          color_code: v.color_code,
-          image: v.image || image,
-          price: v.price || '24.99',
-          in_stock: v.in_stock !== false,
-        }))
+        console.log(`📦 Processing ${catalogVariants.length} variants...`)
+        
+        variants = catalogVariants.map((v: any) => {
+          // Determine stock status - Printful uses availability_status
+          // 'in_stock', 'out_of_stock', 'discontinued', 'preorder', etc.
+          const availabilityStatus = v.availability_status?.toLowerCase() || ''
+          const isInStock = availabilityStatus === 'in_stock' || 
+                          (v.in_stock === true && availabilityStatus !== 'out_of_stock' && availabilityStatus !== 'discontinued')
+          
+          // Use variant-specific image if available, otherwise use product image
+          const variantImage = v.image || image
+          
+          // Get price - Printful returns price as string
+          const variantPrice = v.price || '24.99'
+          
+          console.log(`  Variant ${v.id}: ${v.name} - Stock: ${isInStock} (status: ${v.availability_status}, in_stock: ${v.in_stock})`)
+          
+          return {
+            id: v.id,
+            name: v.name || `${v.size} - ${v.color}`,
+            size: v.size || '',
+            color: v.color || '',
+            color_code: v.color_code || '#000000',
+            image: variantImage,
+            price: variantPrice,
+            in_stock: isInStock,
+            availability_status: v.availability_status,
+          }
+        })
+        
+        console.log(`✅ Processed ${variants.length} variants`)
       } catch (variantError) {
-        console.warn('Could not fetch variants, using defaults:', variantError)
+        console.error('❌ Could not fetch variants:', variantError)
+        console.warn('Using fallback variants')
         // Fallback to basic variants if catalog fetch fails
         variants = [
           { id: 1, name: 'Small', size: 'S', color: 'Black', color_code: '#000000', image, price: '24.99', in_stock: true },
@@ -77,6 +99,8 @@ export async function GET(
           { id: 3, name: 'Large', size: 'L', color: 'Black', color_code: '#000000', image, price: '24.99', in_stock: true },
         ]
       }
+    } else {
+      console.warn('⚠️ Store product has no product_id, cannot fetch variants')
     }
 
     const product = {
