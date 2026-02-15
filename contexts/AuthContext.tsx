@@ -6,6 +6,8 @@ import {
   onAuthStateChanged, 
   signInWithEmailAndPassword,
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   GoogleAuthProvider,
   OAuthProvider,
   signOut as firebaseSignOut,

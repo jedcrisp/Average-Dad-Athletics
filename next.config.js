@@ -4,7 +4,8 @@ const nextConfig = {
   async headers() {
     return [
       {
-        // Apply headers to all routes
+        // Apply COOP header to all routes except auth-related pages
+        // This allows OAuth popups to work properly
         source: '/:path*',
         headers: [
           {
