@@ -1,20 +1,31 @@
 'use client'
 
-import { useEffect, useState, Suspense } from 'react'
+import { useEffect, useState, Suspense, useRef } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { useCart } from '@/contexts/CartContext'
 
 function CheckoutSuccessContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
+  const { clearCart } = useCart()
   const [sessionId, setSessionId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const cartCleared = useRef(false) // Track if cart has been cleared to avoid clearing multiple times
 
   useEffect(() => {
     const id = searchParams.get('session_id')
     setSessionId(id)
+    
+    // Clear cart when we have a valid session ID (successful payment)
+    if (id && !cartCleared.current) {
+      clearCart()
+      cartCleared.current = true
+      console.log('✅ Cart cleared after successful payment')
+    }
+    
     setLoading(false)
-  }, [searchParams])
+  }, [searchParams, clearCart])
 
   if (loading) {
     return (
