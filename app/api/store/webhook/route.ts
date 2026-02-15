@@ -36,14 +36,27 @@ export async function POST(request: NextRequest) {
       // Extract order information from session metadata
       const items = JSON.parse(session.metadata?.items || '[]')
 
-      // Get customer details from Stripe
-      const customer = await stripe.customers.retrieve(session.customer as string)
+      // Get customer details from Stripe (if customer exists)
+      let customerName = ''
+      let customerEmail = ''
+      if (session.customer) {
+        try {
+          const customer = await stripe.customers.retrieve(session.customer as string)
+          // Check if customer is deleted
+          if (customer && !customer.deleted) {
+            customerName = customer.name || ''
+            customerEmail = customer.email || ''
+          }
+        } catch (error) {
+          console.warn('Error retrieving customer:', error)
+        }
+      }
 
       // Create order in Printful
       try {
         const printfulOrder = await createPrintfulOrder({
           recipient: {
-            name: session.customer_details?.name || customer.name || 'Customer',
+            name: session.customer_details?.name || customerName || 'Customer',
             address1: session.customer_details?.address?.line1 || '',
             address2: session.customer_details?.address?.line2 || '',
             city: session.customer_details?.address?.city || '',
@@ -51,7 +64,7 @@ export async function POST(request: NextRequest) {
             country_code: session.customer_details?.address?.country || 'US',
             zip: session.customer_details?.address?.postal_code || '',
             phone: session.customer_details?.phone || '',
-            email: session.customer_details?.email || customer.email || '',
+            email: session.customer_details?.email || customerEmail || '',
           },
           items: items.map((item: any) => ({
             variant_id: item.variantId,
