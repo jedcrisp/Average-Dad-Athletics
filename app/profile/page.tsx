@@ -5,7 +5,9 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useRouter } from 'next/navigation'
 import { doc, getDoc } from 'firebase/firestore'
 import { db } from '@/lib/firebase-client'
-import { UserIcon, EnvelopeIcon, CalendarIcon, ArrowRightOnRectangleIcon, TrashIcon } from '@heroicons/react/24/outline'
+import { forumHelpers, ForumPost } from '@/lib/firebase-helpers'
+import { UserIcon, EnvelopeIcon, CalendarIcon, ArrowRightOnRectangleIcon, TrashIcon, StarIcon } from '@heroicons/react/24/outline'
+import Link from 'next/link'
 
 export default function ProfilePage() {
   const { user, loading: authLoading, signOut, deleteAccount } = useAuth()
@@ -16,6 +18,8 @@ export default function ProfilePage() {
   const [signingOut, setSigningOut] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [favoritePosts, setFavoritePosts] = useState<ForumPost[]>([])
+  const [loadingFavorites, setLoadingFavorites] = useState(false)
 
   useEffect(() => {
     setMounted(true)
@@ -52,6 +56,23 @@ export default function ProfilePage() {
       }
       
       fetchUserData()
+      
+      // Fetch favorite posts
+      const fetchFavorites = async () => {
+        if (user) {
+          try {
+            setLoadingFavorites(true)
+            const favorites = await forumHelpers.getFavorites(user.uid)
+            setFavoritePosts(favorites)
+          } catch (error) {
+            console.error('Error fetching favorites:', error)
+          } finally {
+            setLoadingFavorites(false)
+          }
+        }
+      }
+      
+      fetchFavorites()
     }
   }, [user, authLoading, router, mounted])
 
@@ -150,6 +171,60 @@ export default function ProfilePage() {
                     </div>
                   )}
                 </div>
+              </div>
+
+              {/* Favorite Conversations */}
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-semibold text-gray-900">Favorite Conversations</h2>
+                  <StarIcon className="w-5 h-5 text-yellow-500" />
+                </div>
+                {loadingFavorites ? (
+                  <div className="bg-gray-50 rounded-lg p-8 text-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
+                    <p className="mt-2 text-gray-600 text-sm">Loading favorites...</p>
+                  </div>
+                ) : favoritePosts.length === 0 ? (
+                  <div className="bg-gray-50 rounded-lg p-8 text-center">
+                    <StarIcon className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                    <p className="text-gray-600 mb-2">No favorite conversations yet</p>
+                    <p className="text-sm text-gray-500 mb-4">Click the star icon on any forum post to save it here</p>
+                    <Link
+                      href="/forum"
+                      className="inline-block px-4 py-2 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-700 transition-colors"
+                    >
+                      Browse Forum
+                    </Link>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {favoritePosts.map((post) => (
+                      <Link
+                        key={post.id}
+                        href={`/forum/${post.id}`}
+                        className="block bg-gray-50 border border-gray-200 rounded-lg p-4 hover:bg-gray-100 hover:border-primary-300 transition-colors"
+                      >
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1">
+                            <h3 className="font-semibold text-gray-900 mb-1 line-clamp-1">{post.title}</h3>
+                            <div className="flex items-center gap-3 text-sm text-gray-600 mb-2">
+                              <span className="px-2 py-0.5 bg-primary-100 text-primary-800 text-xs font-medium rounded">
+                                {post.category}
+                              </span>
+                              <span>{post.author}</span>
+                              <span>•</span>
+                              <span>{post.replies} {post.replies === 1 ? 'reply' : 'replies'}</span>
+                            </div>
+                            {post.excerpt && (
+                              <p className="text-sm text-gray-600 line-clamp-2">{post.excerpt}</p>
+                            )}
+                          </div>
+                          <StarIcon className="w-5 h-5 text-yellow-500 flex-shrink-0 mt-1" />
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Quick Actions */}

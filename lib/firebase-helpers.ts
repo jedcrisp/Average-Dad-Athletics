@@ -15,6 +15,7 @@ import {
   addDoc, 
   updateDoc, 
   deleteDoc,
+  setDoc,
   query,
   where,
   orderBy,
@@ -239,6 +240,96 @@ export const forumHelpers = {
   // Check if a user email is blocked
   async isUserBlocked(email: string): Promise<boolean> {
     return await blockedUserHelpers.isBlocked(email)
+  },
+
+  // Add a post to user's favorites
+  async addFavorite(userId: string, postId: string): Promise<void> {
+    if (!db) throw new Error('Firebase is not configured')
+    const userRef = doc(db, 'users', userId)
+    const userSnap = await getDoc(userRef)
+    
+    if (userSnap.exists()) {
+      const userData = userSnap.data()
+      const favorites = userData.favoritePosts || []
+      if (!favorites.includes(postId)) {
+        await updateDoc(userRef, {
+          favoritePosts: [...favorites, postId]
+        })
+      }
+    } else {
+      // Create user document if it doesn't exist
+      await setDoc(userRef, {
+        favoritePosts: [postId]
+      })
+    }
+  },
+
+  // Remove a post from user's favorites
+  async removeFavorite(userId: string, postId: string): Promise<void> {
+    if (!db) throw new Error('Firebase is not configured')
+    const userRef = doc(db, 'users', userId)
+    const userSnap = await getDoc(userRef)
+    
+    if (userSnap.exists()) {
+      const userData = userSnap.data()
+      const favorites = userData.favoritePosts || []
+      await updateDoc(userRef, {
+        favoritePosts: favorites.filter((id: string) => id !== postId)
+      })
+    }
+  },
+
+  // Check if a post is favorited by user
+  async isFavorited(userId: string, postId: string): Promise<boolean> {
+    if (!db) return false
+    const userRef = doc(db, 'users', userId)
+    const userSnap = await getDoc(userRef)
+    
+    if (userSnap.exists()) {
+      const userData = userSnap.data()
+      const favorites = userData.favoritePosts || []
+      return favorites.includes(postId)
+    }
+    return false
+  },
+
+  // Get all favorited posts for a user
+  async getFavorites(userId: string): Promise<ForumPost[]> {
+    if (!db) throw new Error('Firebase is not configured')
+    const userRef = doc(db, 'users', userId)
+    const userSnap = await getDoc(userRef)
+    
+    if (!userSnap.exists()) {
+      return []
+    }
+    
+    const userData = userSnap.data()
+    const favoriteIds = userData.favoritePosts || []
+    
+    if (favoriteIds.length === 0) {
+      return []
+    }
+    
+    // Fetch all favorite posts
+    const posts: ForumPost[] = []
+    for (const postId of favoriteIds) {
+      try {
+        const post = await this.getById(postId)
+        if (post) {
+          posts.push(post)
+        }
+      } catch (error) {
+        console.warn(`Failed to fetch favorite post ${postId}:`, error)
+        // Continue with other posts even if one fails
+      }
+    }
+    
+    // Sort by creation date (newest first)
+    return posts.sort((a, b) => {
+      const aDate = a.createdAt?.toDate() || new Date(0)
+      const bDate = b.createdAt?.toDate() || new Date(0)
+      return bDate.getTime() - aDate.getTime()
+    })
   },
 
   // Get all posts, optionally filtered by category

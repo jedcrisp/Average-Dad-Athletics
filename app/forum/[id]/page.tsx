@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import Link from 'next/link'
-import { UserIcon, ClockIcon, ArrowLeftIcon, ChatBubbleLeftRightIcon } from '@heroicons/react/24/outline'
+import { UserIcon, ClockIcon, ArrowLeftIcon, ChatBubbleLeftRightIcon, StarIcon } from '@heroicons/react/24/outline'
+import { StarIcon as StarIconSolid } from '@heroicons/react/24/solid'
 import { forumHelpers, blockedUserHelpers, ForumPost, ForumReply } from '@/lib/firebase-helpers'
 
 export default function ForumPostPage() {
@@ -18,6 +19,8 @@ export default function ForumPostPage() {
   const [error, setError] = useState<string>('')
   const [replyContent, setReplyContent] = useState('')
   const [submittingReply, setSubmittingReply] = useState(false)
+  const [isFavorited, setIsFavorited] = useState(false)
+  const [togglingFavorite, setTogglingFavorite] = useState(false)
 
   useEffect(() => {
     const fetchPost = async () => {
