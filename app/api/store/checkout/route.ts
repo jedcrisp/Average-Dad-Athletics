@@ -14,6 +14,15 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Calculate order total for free shipping eligibility
+    const orderTotal = items.reduce((sum: number, item: any) => {
+      const price = item.price || 24.99 // Fallback price
+      return sum + (price * item.quantity)
+    }, 0)
+    
+    const qualifiesForFreeShipping = orderTotal >= 50
+    console.log(`💰 Order total: $${orderTotal.toFixed(2)}, Free shipping eligible: ${qualifiesForFreeShipping}`)
+
     // Convert items to Stripe format
     const lineItems = items.map((item: any) => {
       // Price should be sent from frontend, convert to cents
@@ -126,6 +135,23 @@ export async function POST(request: NextRequest) {
           display_name: 'Standard Shipping',
         },
       }]
+    }
+
+    // Add free shipping option if order qualifies (place it first so it's the default)
+    if (qualifiesForFreeShipping) {
+      const freeShippingOption = {
+        shipping_rate_data: {
+          type: 'fixed_amount',
+          fixed_amount: {
+            amount: 0, // Free
+            currency: 'usd',
+          },
+          display_name: 'Free Shipping',
+        },
+      }
+      // Insert free shipping at the beginning
+      shippingOptions.unshift(freeShippingOption)
+      console.log('🎁 Added free shipping option (order >= $50)')
     }
 
     console.log('✅ Shipping options to send to Stripe:', JSON.stringify(shippingOptions, null, 2))
