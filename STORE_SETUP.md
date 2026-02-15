@@ -49,6 +49,26 @@ The store integration works as follows:
 2. Copy your **Secret key** (starts with `sk_test_...` for test, `sk_live_...` for production)
 3. Copy your **Publishable key** (starts with `pk_test_...` for test, `pk_live_...` for production)
 
+### 2.3 Enable Email Receipts
+Stripe Checkout automatically sends confirmation emails to customers after successful payment. To ensure this is enabled:
+
+1. Go to [Stripe Dashboard](https://dashboard.stripe.com/settings/emails)
+2. Navigate to **Settings > Email receipts**
+3. Enable **"Email receipts for Checkout"**
+4. Customize the email template if desired (optional)
+5. Test by making a test purchase
+
+**Note**: Email receipts are sent automatically when:
+- Payment is successful
+- Customer provides email during checkout
+- Email receipts are enabled in Dashboard settings
+
+The receipt includes:
+- Order summary
+- Payment details
+- Downloadable receipt PDF
+- Shipping information (if applicable)
+
 ### 2.3 Set Up Webhook
 1. Go to [Stripe Dashboard > Webhooks](https://dashboard.stripe.com/webhooks)
 2. Click "Add endpoint"
