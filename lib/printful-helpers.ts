@@ -97,11 +97,23 @@ export async function getPrintfulProducts(): Promise<PrintfulProduct[]> {
     })
 
     if (!response.ok) {
-      throw new Error(`Printful API error: ${response.statusText}`)
+      const errorText = await response.text()
+      console.error('Printful API error response:', errorText)
+      throw new Error(`Printful API error: ${response.status} ${response.statusText}`)
     }
 
     const data = await response.json()
-    return data.result?.data || []
+    console.log('Printful API response structure:', {
+      hasResult: !!data.result,
+      hasData: !!data.result?.data,
+      dataLength: data.result?.data?.length,
+      fullResponse: JSON.stringify(data).substring(0, 500), // First 500 chars for debugging
+    })
+    
+    const products = data.result?.data || []
+    console.log(`Found ${products.length} products in Printful response`)
+    
+    return products
   } catch (error) {
     console.error('Error fetching Printful products:', error)
     throw error

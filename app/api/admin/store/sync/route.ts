@@ -8,22 +8,39 @@ export async function POST() {
     // Verify admin access (you can add admin verification here)
     // For now, we'll allow the sync - add proper auth checks in production
 
-    // Fetch products from Printful
-    const printfulProducts = await getPrintfulProducts()
-    
     if (!db) {
       throw new Error('Firebase is not configured')
+    }
+
+    // Fetch products from Printful
+    console.log('Fetching products from Printful...')
+    const printfulProducts = await getPrintfulProducts()
+    console.log(`Received ${printfulProducts.length} products from Printful`)
+    
+    if (printfulProducts.length === 0) {
+      return NextResponse.json({
+        success: true,
+        synced: 0,
+        failed: 0,
+        products: [],
+        message: 'No products found in Printful store. Make sure you have added products to your Printful store first.',
+      })
     }
 
     const syncedProducts: any[] = []
     let syncedCount = 0
     let failedCount = 0
+    let skippedCount = 0
 
     // Sync each product to Firestore
     for (const product of printfulProducts) {
       try {
+        console.log(`Processing product: ${product.id} - ${product.name}`)
+        
         // Skip discontinued products
         if (product.is_discontinued) {
+          console.log(`Skipping discontinued product: ${product.id}`)
+          skippedCount++
           continue
         }
 
@@ -75,7 +92,12 @@ export async function POST() {
       success: true,
       synced: syncedCount,
       failed: failedCount,
+      skipped: skippedCount,
+      total: printfulProducts.length,
       products: syncedProducts,
+      message: syncedCount === 0 
+        ? 'No products were synced. Check if products exist in Printful and are not discontinued.'
+        : `Successfully synced ${syncedCount} product(s)`,
     })
   } catch (error: any) {
     console.error('Error syncing products from Printful:', error)

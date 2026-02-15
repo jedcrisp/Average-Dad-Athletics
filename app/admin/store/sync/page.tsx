@@ -16,7 +16,10 @@ export default function AdminStoreSyncPage() {
   const [syncResult, setSyncResult] = useState<{
     synced: number
     failed: number
+    skipped?: number
+    total?: number
     products: any[]
+    message?: string
   } | null>(null)
 
   // Development bypass - only in local dev
@@ -123,8 +126,16 @@ export default function AdminStoreSyncPage() {
               This will fetch all products from your Printful store and save them to Firestore. 
               Products will then be displayed from Firestore instead of fetching from Printful each time.
             </p>
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+              <p className="text-sm text-blue-800 font-semibold mb-2">Before syncing, make sure:</p>
+              <ul className="text-sm text-blue-700 space-y-1 list-disc list-inside">
+                <li>Your Printful API key is configured in environment variables</li>
+                <li>You have added products to your Printful store (Dashboard → Products)</li>
+                <li>Products are not marked as discontinued</li>
+              </ul>
+            </div>
             <p className="text-sm text-gray-500">
-              <strong>Note:</strong> Make sure your Printful API key is configured in environment variables.
+              <strong>Troubleshooting:</strong> If 0 products are synced, check your server logs for detailed error messages.
             </p>
           </div>
 
@@ -135,14 +146,39 @@ export default function AdminStoreSyncPage() {
           )}
 
           {success && syncResult && (
-            <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
-              <p className="text-green-800 font-semibold mb-2">Sync completed successfully!</p>
-              <ul className="text-sm text-green-700 space-y-1">
-                <li>✓ Synced: {syncResult.synced} products</li>
+            <div className={`mb-6 p-4 border rounded-lg ${
+              syncResult.synced > 0 
+                ? 'bg-green-50 border-green-200' 
+                : 'bg-yellow-50 border-yellow-200'
+            }`}>
+              <p className={`font-semibold mb-2 ${
+                syncResult.synced > 0 ? 'text-green-800' : 'text-yellow-800'
+              }`}>
+                {syncResult.synced > 0 ? 'Sync completed!' : 'No products synced'}
+              </p>
+              <ul className="text-sm space-y-1">
+                {syncResult.total !== undefined && (
+                  <li className={syncResult.synced > 0 ? 'text-green-700' : 'text-yellow-700'}>
+                    Total found: {syncResult.total} products
+                  </li>
+                )}
+                <li className={syncResult.synced > 0 ? 'text-green-700' : 'text-yellow-700'}>
+                  ✓ Synced: {syncResult.synced} products
+                </li>
+                {syncResult.skipped !== undefined && syncResult.skipped > 0 && (
+                  <li className="text-yellow-700">⊘ Skipped (discontinued): {syncResult.skipped} products</li>
+                )}
                 {syncResult.failed > 0 && (
                   <li className="text-red-600">✗ Failed: {syncResult.failed} products</li>
                 )}
               </ul>
+              {syncResult.message && (
+                <p className={`mt-2 text-sm ${
+                  syncResult.synced > 0 ? 'text-green-700' : 'text-yellow-700'
+                }`}>
+                  {syncResult.message}
+                </p>
+              )}
             </div>
           )}
 
