@@ -316,7 +316,9 @@ export default function ProductDetailPage() {
             {/* Product Details */}
             <div className="md:w-1/2 p-8">
               <h1 className="text-3xl font-bold text-gray-900 mb-4">{product.name}</h1>
-              <p className="text-gray-600 mb-4">{product.description}</p>
+              {product.description && (
+                <p className="text-gray-600 mb-4">{product.description}</p>
+              )}
               
               {/* Free Shipping Notice */}
               <div className="mb-6 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2 text-green-800 text-sm">

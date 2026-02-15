@@ -88,7 +88,7 @@ export async function GET() {
           return {
             id: p.id.toString(),
             name: p.name,
-            description: p.description || 'Premium quality product',
+            description: p.description || '',
             priceMin: Math.round(priceRange.min * 100), // Convert to cents
             priceMax: Math.round(priceRange.max * 100), // Convert to cents
             currency: priceRange.currency,

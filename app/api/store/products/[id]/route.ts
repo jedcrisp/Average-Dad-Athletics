@@ -155,7 +155,7 @@ export async function GET(
     const product = {
       id: productId,
       name: storeProduct.name || 'Product',
-      description: storeProduct.description || 'Premium quality product',
+      description: storeProduct.description || '',
       price: 2499, // Default price in cents - you may need to calculate from variants
       currency: storeProduct.currency || 'usd',
       image: image,

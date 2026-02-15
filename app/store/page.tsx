@@ -130,7 +130,9 @@ export default function StorePage() {
                 </div>
                 <div className="p-4">
                   <h3 className="text-lg font-semibold text-gray-900 mb-2">{product.name}</h3>
-                  <p className="text-sm text-gray-600 mb-3 line-clamp-2">{product.description}</p>
+                  {product.description && (
+                    <p className="text-sm text-gray-600 mb-3 line-clamp-2">{product.description}</p>
+                  )}
                   <p className="text-xl font-bold text-primary-600">
                     {product.priceMin === product.priceMax ? (
                       // Same price for all variants - show single price
