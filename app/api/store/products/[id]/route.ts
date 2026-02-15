@@ -156,6 +156,19 @@ export async function GET(
       variants: variants,
     }
 
+    // Log final product for debugging
+    console.log('📤 Final product being returned:', {
+      id: product.id,
+      name: product.name,
+      variantCount: product.variants.length,
+      variants: product.variants.map((v: any) => ({
+        id: v.id,
+        name: v.name,
+        in_stock: v.in_stock,
+        price: v.price,
+      })),
+    })
+
     return NextResponse.json({ product })
   } catch (error: any) {
     console.error('Error fetching product from Printful:', error)
