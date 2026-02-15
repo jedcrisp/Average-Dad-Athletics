@@ -193,7 +193,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         prompt: 'select_account'
       })
       
-      const result = await signInWithPopup(auth, provider)
+      // Try popup first, fallback to redirect if popup fails due to COOP
+      let result
+      try {
+        result = await signInWithPopup(auth, provider)
+      } catch (popupError: any) {
+        // If popup fails due to COOP or other popup issues, try redirect
+        if (popupError?.code === 'auth/popup-blocked' || 
+            popupError?.message?.includes('Cross-Origin-Opener-Policy') ||
+            popupError?.message?.includes('window.closed')) {
+          console.warn('Popup blocked by COOP policy, falling back to redirect:', popupError)
+          // Use redirect as fallback - this will navigate away
+          await signInWithRedirect(auth, provider)
+          // Redirect will navigate away, so we return here
+          isOAuthInProgressRef.current = false
+          return
+        }
+        throw popupError
+      }
       
       // Save user to Firestore (non-blocking - won't fail sign-in if offline)
       if (result.user) {
