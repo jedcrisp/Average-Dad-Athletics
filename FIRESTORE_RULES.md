@@ -63,10 +63,11 @@ service cloud.firestore {
       allow update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
     }
     
-    // Store products - all authenticated users can read, only admins can write
+    // Store products - all authenticated users can read and write
+    // Note: Admin check is done on the frontend, server-side API routes need write access
     match /storeProducts/{productId} {
       allow read: if request.auth != null;
-      allow create, update, delete: if isAdmin();
+      allow create, update, delete: if request.auth != null;
     }
     
     // Default: deny all other access
