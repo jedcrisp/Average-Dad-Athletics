@@ -18,10 +18,40 @@ export async function GET(
       )
     }
 
-    // Get product image
-    const image = storeProduct.files && storeProduct.files.length > 0
-      ? storeProduct.files[0].preview_url || storeProduct.files[0].thumbnail_url
-      : 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=800&h=800&fit=crop&crop=center'
+    // Get product image - try multiple sources
+    let image = 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=800&h=800&fit=crop&crop=center'
+    
+    // Check files array first
+    if (storeProduct.files && storeProduct.files.length > 0) {
+      const file = storeProduct.files[0]
+      image = file.preview_url || file.thumbnail_url || image
+      console.log(`Product ${productId} image from files:`, image)
+    }
+    
+    // Check for direct image properties
+    if (!image || image.includes('unsplash.com')) {
+      if (storeProduct.image) {
+        image = storeProduct.image
+        console.log(`Product ${productId} image from product.image:`, image)
+      } else if (storeProduct.thumbnail) {
+        image = storeProduct.thumbnail
+        console.log(`Product ${productId} image from product.thumbnail:`, image)
+      } else if (storeProduct.thumbnail_url) {
+        image = storeProduct.thumbnail_url
+        console.log(`Product ${productId} image from product.thumbnail_url:`, image)
+      } else if (storeProduct.preview_url) {
+        image = storeProduct.preview_url
+        console.log(`Product ${productId} image from product.preview_url:`, image)
+      }
+    }
+    
+    // Log for debugging
+    console.log(`Product ${productId} full structure:`, {
+      hasFiles: !!storeProduct.files,
+      filesLength: storeProduct.files?.length || 0,
+      imageKeys: Object.keys(storeProduct).filter(k => k.toLowerCase().includes('image') || k.toLowerCase().includes('thumbnail') || k.toLowerCase().includes('preview')),
+      finalImage: image,
+    })
 
     // Get variants from the catalog product
     let variants: any[] = []
