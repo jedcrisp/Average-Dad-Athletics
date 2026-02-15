@@ -5,6 +5,8 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useCart } from '@/contexts/CartContext'
 import { isAdmin } from '@/lib/admin-helpers'
+import { doc, getDoc } from 'firebase/firestore'
+import { db } from '@/lib/firebase-client'
 import { Bars3Icon, XMarkIcon, UserIcon, ShoppingCartIcon } from '@heroicons/react/24/outline'
 
 export default function Navbar() {
@@ -12,6 +14,7 @@ export default function Navbar() {
   const { user, signOut } = useAuth()
   const { getTotalItems } = useCart()
   const [userIsAdmin, setUserIsAdmin] = useState(false)
+  const [userDisplayName, setUserDisplayName] = useState<string | null>(null)
   const cartItemCount = getTotalItems()
 
   useEffect(() => {
@@ -24,6 +27,32 @@ export default function Navbar() {
       }
     }
     checkAdmin()
+  }, [user])
+
+  // Fetch user display name from Firestore
+  useEffect(() => {
+    const fetchUserDisplayName = async () => {
+      if (user && db) {
+        try {
+          const userDoc = await getDoc(doc(db, 'users', user.uid))
+          if (userDoc.exists()) {
+            const userData = userDoc.data()
+            // Prefer Firestore name, then Firebase Auth displayName, then email
+            setUserDisplayName(userData.name || user.displayName || user.email || null)
+          } else {
+            // Fallback to Firebase Auth displayName or email
+            setUserDisplayName(user.displayName || user.email || null)
+          }
+        } catch (error) {
+          // If Firestore fetch fails, use Firebase Auth values
+          console.warn('Error fetching user display name from Firestore:', error)
+          setUserDisplayName(user.displayName || user.email || null)
+        }
+      } else {
+        setUserDisplayName(null)
+      }
+    }
+    fetchUserDisplayName()
   }, [user])
 
   return (
@@ -70,7 +99,7 @@ export default function Navbar() {
                 className="text-gray-700 text-sm flex items-center gap-1 hover:text-primary-600 transition-colors"
               >
                 <UserIcon className="w-4 h-4" />
-                {user.displayName || user.email}
+                {userDisplayName || user.displayName || user.email}
               </Link>
             ) : (
               <Link
@@ -167,7 +196,7 @@ export default function Navbar() {
               >
                 <div className="flex items-center gap-2">
                   <UserIcon className="w-4 h-4" />
-                  {user.displayName || user.email}
+                  {userDisplayName || user.displayName || user.email}
                 </div>
               </Link>
             ) : (
