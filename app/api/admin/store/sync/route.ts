@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getPrintfulProducts } from '@/lib/printful-helpers'
-import { adminDb } from '@/lib/firebase-admin'
+import { doc, setDoc } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 
 export async function POST(request: NextRequest) {
@@ -8,19 +8,12 @@ export async function POST(request: NextRequest) {
   console.log('Timestamp:', new Date().toISOString())
   
   try {
-    // Use Admin SDK if available (bypasses security rules), otherwise use regular SDK
-    const firestoreDb = adminDb || db
-    
-    if (!firestoreDb) {
-      console.error('❌ No Firestore instance available')
+    // Check Firebase
+    if (!db) {
+      console.error('❌ Firebase is not configured')
       throw new Error('Firebase is not configured')
     }
-    
-    if (adminDb) {
-      console.log('✅ Using Firebase Admin SDK (bypasses security rules)')
-    } else {
-      console.log('⚠️ Using regular Firebase SDK (requires updated security rules)')
-    }
+    console.log('✅ Firebase is configured')
 
     // Check Firebase (already checked above, but keep for compatibility)
     if (!firestoreDb) {
@@ -159,22 +152,11 @@ export async function POST(request: NextRequest) {
         console.log(`   📝 Product data to save:`, JSON.stringify(productData, null, 2))
         
         try {
-          if (adminDb) {
-            // Use Admin SDK (bypasses security rules)
-            const productRef = adminDb.collection('storeProducts').doc(product.id.toString())
-            console.log(`   🔄 Calling Admin SDK setDoc...`)
-            await productRef.set(productData, { merge: true })
-            console.log(`   ✅ Successfully saved product ${product.id} to Firestore (Admin SDK)`)
-          } else if (db) {
-            // Use regular SDK (requires security rules)
-            const { doc, setDoc } = await import('firebase/firestore')
-            const productRef = doc(db, 'storeProducts', product.id.toString())
-            console.log(`   🔄 Calling regular SDK setDoc...`)
-            await setDoc(productRef, productData, { merge: true })
-            console.log(`   ✅ Successfully saved product ${product.id} to Firestore (Regular SDK)`)
-          } else {
-            throw new Error('No Firestore instance available')
-          }
+          // Save to Firestore (optional - for caching)
+          const productRef = doc(db, 'storeProducts', product.id.toString())
+          console.log(`   🔄 Calling setDoc...`)
+          await setDoc(productRef, productData, { merge: true })
+          console.log(`   ✅ Successfully saved product ${product.id} to Firestore`)
         } catch (firestoreError: any) {
           console.error(`   ❌ Firestore save error for product ${product.id}:`, firestoreError)
           console.error(`   Error details:`, {
