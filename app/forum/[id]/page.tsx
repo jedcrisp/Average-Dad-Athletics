@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import Link from 'next/link'
 import { UserIcon, ClockIcon, ArrowLeftIcon, ChatBubbleLeftRightIcon } from '@heroicons/react/24/outline'
-import { forumHelpers, ForumPost, ForumReply } from '@/lib/firebase-helpers'
+import { forumHelpers, blockedUserHelpers, ForumPost, ForumReply } from '@/lib/firebase-helpers'
 
 export default function ForumPostPage() {
   const params = useParams()
@@ -53,6 +53,21 @@ export default function ForumPostPage() {
 
     if (!replyContent.trim()) {
       return
+    }
+
+    // Check if user is blocked
+    try {
+      const userEmail = user.email?.toLowerCase().trim()
+      if (userEmail) {
+        const isBlocked = await blockedUserHelpers.isBlocked(userEmail)
+        if (isBlocked) {
+          alert('Your account has been blocked. Please contact support if you believe this is an error.')
+          return
+        }
+      }
+    } catch (blockCheckError) {
+      console.error('Error checking if user is blocked:', blockCheckError)
+      // Continue with reply if check fails (don't block legitimate users)
     }
 
     try {

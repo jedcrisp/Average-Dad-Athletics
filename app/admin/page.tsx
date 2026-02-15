@@ -92,7 +92,7 @@ export default function AdminDashboardPage() {
             <p className="text-gray-600">Manage your website content and store</p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {/* Build a Workout */}
             <Link
               href="/admin/workouts"
@@ -124,6 +124,24 @@ export default function AdminDashboardPage() {
                   <h2 className="text-xl font-bold text-gray-900 mb-2">Sync Store</h2>
                   <p className="text-gray-600 text-sm">
                     Sync products from Printful to your website store
+                  </p>
+                </div>
+              </div>
+            </Link>
+
+            {/* Forum Management */}
+            <Link
+              href="/admin/forum"
+              className="group relative bg-gradient-to-br from-red-50 to-red-100 border-2 border-red-200 rounded-lg p-6 hover:border-red-400 hover:shadow-lg transition-all"
+            >
+              <div className="flex items-start gap-4">
+                <div className="bg-red-600 p-3 rounded-lg group-hover:bg-red-700 transition-colors">
+                  <WrenchScrewdriverIcon className="w-8 h-8 text-white" />
+                </div>
+                <div className="flex-1">
+                  <h2 className="text-xl font-bold text-gray-900 mb-2">Forum Management</h2>
+                  <p className="text-gray-600 text-sm">
+                    Delete forum posts and block users who violate rules
                   </p>
                 </div>
               </div>

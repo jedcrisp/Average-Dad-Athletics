@@ -236,6 +236,11 @@ export const storeProductHelpers = {
 }
 
 export const forumHelpers = {
+  // Check if a user email is blocked
+  async isUserBlocked(email: string): Promise<boolean> {
+    return await blockedUserHelpers.isBlocked(email)
+  },
+
   // Get all posts, optionally filtered by category
   async getAll(category?: string): Promise<ForumPost[]> {
     if (!db) throw new Error('Firebase is not configured')
@@ -299,7 +304,7 @@ export const forumHelpers = {
     })
   },
 
-  // Delete a post
+  // Delete a post (admin only)
   async delete(id: string): Promise<void> {
     if (!db) throw new Error('Firebase is not configured')
     const docRef = doc(db, 'forumPosts', id)

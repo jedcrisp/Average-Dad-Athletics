@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import Link from 'next/link'
 import { ArrowLeftIcon, XMarkIcon } from '@heroicons/react/24/outline'
-import { forumHelpers } from '@/lib/firebase-helpers'
+import { forumHelpers, blockedUserHelpers } from '@/lib/firebase-helpers'
 
 const categories = ['Getting Started', 'Equipment', 'Motivation', 'Nutrition', 'Progress', 'Sports']
 
@@ -80,6 +80,21 @@ export default function CreateForumPostPage() {
     if (!title.trim() || !content.trim()) {
       setError('Please fill in all required fields.')
       return
+    }
+
+    // Check if user is blocked
+    try {
+      const userEmail = user.email?.toLowerCase().trim()
+      if (userEmail) {
+        const isBlocked = await forumHelpers.isUserBlocked(userEmail)
+        if (isBlocked) {
+          setError('Your account has been blocked. Please contact support if you believe this is an error.')
+          return
+        }
+      }
+    } catch (blockCheckError) {
+      console.error('Error checking if user is blocked:', blockCheckError)
+      // Continue with post creation if check fails (don't block legitimate users)
     }
 
     try {
