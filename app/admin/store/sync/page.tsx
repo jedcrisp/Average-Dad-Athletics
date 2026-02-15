@@ -19,6 +19,7 @@ export default function AdminStoreSyncPage() {
     skipped?: number
     total?: number
     products: any[]
+    failedProducts?: any[]
     message?: string
   } | null>(null)
 
