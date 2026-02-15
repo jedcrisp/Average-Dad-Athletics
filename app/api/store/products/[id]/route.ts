@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getPrintfulStoreProduct, getPrintfulProductVariants, extractProductImage } from '@/lib/printful-helpers'
+import { getPrintfulProducts, getPrintfulStoreProduct, getPrintfulProductVariants, extractProductImage } from '@/lib/printful-helpers'
 
 export async function GET(
   request: NextRequest,
@@ -8,8 +8,31 @@ export async function GET(
   try {
     const { id: productId } = await params
 
-    // Fetch directly from Printful (always up-to-date)
-    const storeProduct = await getPrintfulStoreProduct(productId)
+    // First, try to get the product from the list API to ensure same image as storefront
+    let storeProduct: any = null
+    let image = 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=800&h=800&fit=crop&crop=center'
+    
+    try {
+      const allProducts = await getPrintfulProducts()
+      const productFromList = allProducts.find((p: any) => p.id.toString() === productId)
+      
+      if (productFromList) {
+        console.log(`✅ Found product ${productId} in list, using same image as storefront`)
+        image = extractProductImage(productFromList)
+        // Still fetch full product details for variants
+        storeProduct = await getPrintfulStoreProduct(productId)
+        // Override image with the one from list to ensure consistency
+        storeProduct.image = image
+      } else {
+        console.log(`⚠️ Product ${productId} not found in list, fetching directly`)
+        storeProduct = await getPrintfulStoreProduct(productId)
+        image = extractProductImage(storeProduct)
+      }
+    } catch (listError) {
+      console.warn('Could not fetch from list, falling back to direct fetch:', listError)
+      storeProduct = await getPrintfulStoreProduct(productId)
+      image = extractProductImage(storeProduct)
+    }
     
     if (!storeProduct) {
       return NextResponse.json(
@@ -18,9 +41,8 @@ export async function GET(
       )
     }
 
-    // Use shared image extraction function for consistency with storefront
-    const image = extractProductImage(storeProduct)
-    console.log(`Product ${productId} extracted image: ${image}`)
+    // Image is already set above from list API to ensure consistency
+    console.log(`Product ${productId} final image: ${image}`)
 
     // Get variants - try store product variants first, then catalog variants
     let variants: any[] = []
