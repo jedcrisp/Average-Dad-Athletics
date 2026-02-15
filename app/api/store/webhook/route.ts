@@ -80,6 +80,15 @@ export async function POST(request: NextRequest) {
         })
 
         console.log('Printful order created:', printfulOrder.id)
+        console.log('📧 Customer email:', session.customer_details?.email || customerEmail)
+
+        // Note: Stripe Checkout automatically sends confirmation emails if enabled in Stripe Dashboard
+        // To enable: Stripe Dashboard > Settings > Email receipts > Enable for Checkout
+        // 
+        // If you want to send custom confirmation emails, you can add email sending logic here:
+        // - Use a service like SendGrid, Resend, or Nodemailer
+        // - Send order confirmation with Printful order details
+        // - Include tracking information when order ships
 
         // You can also save the order to Firestore here for order tracking
         // await saveOrderToFirestore(session.id, printfulOrder.id, items)
