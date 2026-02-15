@@ -10,13 +10,14 @@ export async function GET(
 
     // Fetch product details and variants from Printful
     // For now, return mock data - replace with actual Printful API call
+    const tshirtImage = 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=800&h=800&fit=crop&crop=center'
     const product = {
       id: productId,
       name: 'Average Dad Athletics T-Shirt',
       description: 'Premium quality t-shirt with Average Dad Athletics branding. Made from 100% cotton for maximum comfort.',
       price: 2499, // $24.99 in cents
       currency: 'usd',
-      image: '/placeholder-tshirt.jpg',
+      image: tshirtImage,
       printfulProductId: 1,
       variants: [
         {
@@ -25,7 +26,7 @@ export async function GET(
           size: 'S',
           color: 'Black',
           color_code: '#000000',
-          image: '/placeholder-tshirt.jpg',
+          image: tshirtImage,
           price: '24.99',
           in_stock: true,
         },
@@ -35,7 +36,7 @@ export async function GET(
           size: 'M',
           color: 'Black',
           color_code: '#000000',
-          image: '/placeholder-tshirt.jpg',
+          image: tshirtImage,
           price: '24.99',
           in_stock: true,
         },
@@ -45,7 +46,7 @@ export async function GET(
           size: 'L',
           color: 'Black',
           color_code: '#000000',
-          image: '/placeholder-tshirt.jpg',
+          image: tshirtImage,
           price: '24.99',
           in_stock: true,
         },

@@ -19,7 +19,7 @@ export async function GET() {
         description: 'Premium quality t-shirt with Average Dad Athletics branding',
         price: 2499, // $24.99 in cents
         currency: 'usd',
-        image: '/placeholder-tshirt.jpg',
+        image: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=800&h=800&fit=crop&crop=center',
         printfulProductId: 1,
         category: 'apparel',
       },

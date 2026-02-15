@@ -147,12 +147,17 @@ export default function ProductDetailPage() {
           <div className="md:flex">
             {/* Product Image */}
             <div className="md:w-1/2">
-              <div className="aspect-square bg-gray-200 relative">
+              <div className="aspect-square bg-gray-200 relative overflow-hidden">
                 {selectedVariant?.image || product.image ? (
                   <img
                     src={selectedVariant?.image || product.image}
                     alt={product.name}
                     className="w-full h-full object-cover"
+                    onError={(e) => {
+                      // Fallback to placeholder if image fails to load
+                      const target = e.target as HTMLImageElement
+                      target.src = 'https://via.placeholder.com/800x800/cccccc/666666?text=Product+Image'
+                    }}
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-gray-400">

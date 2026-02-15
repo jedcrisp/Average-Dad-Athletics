@@ -88,12 +88,17 @@ export default function StorePage() {
                 href={`/store/${product.id}`}
                 className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-shadow"
               >
-                <div className="aspect-square bg-gray-200 relative">
+                <div className="aspect-square bg-gray-200 relative overflow-hidden">
                   {product.image ? (
                     <img
                       src={product.image}
                       alt={product.name}
                       className="w-full h-full object-cover"
+                      onError={(e) => {
+                        // Fallback to placeholder if image fails to load
+                        const target = e.target as HTMLImageElement
+                        target.src = 'https://via.placeholder.com/800x800/cccccc/666666?text=Product+Image'
+                      }}
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-gray-400">
