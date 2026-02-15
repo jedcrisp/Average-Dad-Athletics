@@ -90,13 +90,18 @@ export async function GET(
         console.log(`📦 Processing ${catalogVariants.length} catalog variants...`)
         
         variants = catalogVariants.map((v: any) => {
-          // Determine stock status - Printful uses availability_status
-          // 'in_stock', 'out_of_stock', 'discontinued', 'preorder', etc.
+          // Determine stock status - Default to in_stock unless explicitly marked otherwise
+          // Printful may not always return these fields, so we default to available
           const availabilityStatus = (v.availability_status || '').toLowerCase()
-          // Default to in_stock unless explicitly out_of_stock or discontinued
+          // Only mark as out of stock if explicitly set to out_of_stock or discontinued
           const isInStock = availabilityStatus !== 'out_of_stock' && 
-                          availabilityStatus !== 'discontinued' &&
-                          (v.in_stock !== false)
+                          availabilityStatus !== 'discontinued'
+          
+          // If in_stock field exists and is explicitly false, respect it
+          if (v.in_stock === false && isInStock) {
+            console.log(`  ⚠️ Variant ${v.id} has in_stock=false, marking as out of stock`)
+          }
+          const finalInStock = v.in_stock === false ? false : isInStock
           
           // Use variant-specific image if available, otherwise use product image
           const variantImage = v.image || image
@@ -105,11 +110,11 @@ export async function GET(
           const variantPrice = v.retail_price || v.price || '24.99'
           
           console.log(`  Catalog Variant ${v.id}: ${v.name || `${v.size} - ${v.color}`}`)
-          console.log(`    - availability_status: ${v.availability_status}`)
-          console.log(`    - in_stock: ${v.in_stock}`)
-          console.log(`    - calculated in_stock: ${isInStock}`)
+          console.log(`    - availability_status: ${v.availability_status || 'not set'}`)
+          console.log(`    - in_stock field: ${v.in_stock}`)
+          console.log(`    - calculated in_stock: ${finalInStock}`)
           console.log(`    - price: ${variantPrice}`)
-          console.log(`    - image: ${variantImage ? 'yes' : 'no'}`)
+          console.log(`    - image: ${variantImage ? variantImage.substring(0, 50) + '...' : 'no image'}`)
           
           return {
             id: v.id,
@@ -119,7 +124,7 @@ export async function GET(
             color_code: v.color_code || '#000000',
             image: variantImage,
             price: variantPrice,
-            in_stock: isInStock,
+            in_stock: finalInStock,
             availability_status: v.availability_status,
           }
         })
