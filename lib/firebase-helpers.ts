@@ -430,3 +430,57 @@ export const forumHelpers = {
     })
   }
 }
+
+// Blocked users helpers
+export interface BlockedUser {
+  email: string
+  blockedAt: Timestamp
+  blockedBy: string
+  reason?: string
+}
+
+export const blockedUserHelpers = {
+  // Check if an email is blocked
+  async isBlocked(email: string): Promise<boolean> {
+    if (!db) throw new Error('Firebase is not configured')
+    if (!email) return false
+    
+    const blockedRef = collection(db, 'blockedUsers')
+    const q = query(blockedRef, where('email', '==', email.toLowerCase().trim()))
+    const snapshot = await getDocs(q)
+    return !snapshot.empty
+  },
+
+  // Get all blocked users
+  async getAll(): Promise<BlockedUser[]> {
+    if (!db) throw new Error('Firebase is not configured')
+    const blockedRef = collection(db, 'blockedUsers')
+    const q = query(blockedRef, orderBy('blockedAt', 'desc'))
+    const snapshot = await getDocs(q)
+    return snapshot.docs.map(doc => ({
+      email: doc.id,
+      ...doc.data()
+    } as BlockedUser))
+  },
+
+  // Block a user by email
+  async block(email: string, blockedBy: string, reason?: string): Promise<void> {
+    if (!db) throw new Error('Firebase is not configured')
+    const normalizedEmail = email.toLowerCase().trim()
+    const blockedRef = doc(db, 'blockedUsers', normalizedEmail)
+    await setDoc(blockedRef, {
+      email: normalizedEmail,
+      blockedAt: Timestamp.now(),
+      blockedBy: blockedBy,
+      reason: reason || ''
+    })
+  },
+
+  // Unblock a user by email
+  async unblock(email: string): Promise<void> {
+    if (!db) throw new Error('Firebase is not configured')
+    const normalizedEmail = email.toLowerCase().trim()
+    const blockedRef = doc(db, 'blockedUsers', normalizedEmail)
+    await deleteDoc(blockedRef)
+  }
+}

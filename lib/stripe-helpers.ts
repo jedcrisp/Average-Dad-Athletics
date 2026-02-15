@@ -1,13 +1,14 @@
 // Stripe Helper Functions
 import Stripe from 'stripe'
 
-if (!process.env.STRIPE_SECRET_KEY) {
-  throw new Error('STRIPE_SECRET_KEY is not set in environment variables')
-}
+// Initialize Stripe - allow undefined during build, will throw at runtime if used
+const stripeSecretKey = process.env.STRIPE_SECRET_KEY
 
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: '2025-02-24.acacia',
-})
+export const stripe = stripeSecretKey
+  ? new Stripe(stripeSecretKey, {
+      apiVersion: '2025-02-24.acacia',
+    })
+  : (null as any) // Type assertion to allow build, will fail at runtime if used without key
 
 export interface CheckoutItem {
   price_data: {
@@ -34,6 +35,9 @@ export async function createCheckoutSession(
   shippingOptions?: Stripe.Checkout.SessionCreateParams.ShippingOption[],
   shippingRateCalculationUrl?: string
 ): Promise<Stripe.Checkout.Session> {
+  if (!stripeSecretKey) {
+    throw new Error('STRIPE_SECRET_KEY is not set in environment variables')
+  }
   try {
     const sessionParams: Stripe.Checkout.SessionCreateParams = {
       payment_method_types: ['card'],
@@ -92,6 +96,9 @@ export async function createCheckoutSession(
  * Retrieve a Stripe Checkout Session
  */
 export async function getCheckoutSession(sessionId: string): Promise<Stripe.Checkout.Session> {
+  if (!stripeSecretKey) {
+    throw new Error('STRIPE_SECRET_KEY is not set in environment variables')
+  }
   try {
     const session = await stripe.checkout.sessions.retrieve(sessionId)
     return session
@@ -109,6 +116,9 @@ export function verifyWebhookSignature(
   signature: string,
   secret: string
 ): Stripe.Event {
+  if (!stripeSecretKey) {
+    throw new Error('STRIPE_SECRET_KEY is not set in environment variables')
+  }
   try {
     return stripe.webhooks.constructEvent(payload, signature, secret)
   } catch (error) {

@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useRouter } from 'next/navigation'
 import { isAdmin } from '@/lib/admin-helpers'
 import { forumHelpers, blockedUserHelpers, BlockedUser, ForumPost } from '@/lib/firebase-helpers'
-import { TrashIcon, BanIcon, XMarkIcon } from '@heroicons/react/24/outline'
+import { TrashIcon, NoSymbolIcon, XMarkIcon } from '@heroicons/react/24/outline'
 
 export default function AdminForumPage() {
   const { user, loading: authLoading } = useAuth()
@@ -277,7 +277,7 @@ export default function AdminForumPage() {
                   disabled={blocking || !blockEmail.trim()}
                   className="px-6 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                 >
-                  <BanIcon className="w-5 h-5" />
+                  <NoSymbolIcon className="w-5 h-5" />
                   {blocking ? 'Blocking...' : 'Block User'}
                 </button>
               </form>
@@ -299,7 +299,7 @@ export default function AdminForumPage() {
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">
-                            <BanIcon className="w-5 h-5 text-red-600" />
+                            <NoSymbolIcon className="w-5 h-5 text-red-600" />
                             <span className="font-semibold text-gray-900">{blocked.email}</span>
                           </div>
                           <div className="text-sm text-gray-600 space-y-1">

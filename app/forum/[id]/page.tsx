@@ -96,6 +96,44 @@ export default function ForumPostPage() {
     }
   }
 
+  // Check if post is favorited
+  useEffect(() => {
+    const checkFavorite = async () => {
+      if (user && postId) {
+        try {
+          const favorited = await forumHelpers.isFavorited(user.uid, postId)
+          setIsFavorited(favorited)
+        } catch (error) {
+          console.error('Error checking favorite status:', error)
+        }
+      }
+    }
+    checkFavorite()
+  }, [user, postId])
+
+  const handleToggleFavorite = async () => {
+    if (!user) {
+      router.push('/login?redirect=/forum/' + postId)
+      return
+    }
+
+    try {
+      setTogglingFavorite(true)
+      if (isFavorited) {
+        await forumHelpers.removeFavorite(user.uid, postId)
+        setIsFavorited(false)
+      } else {
+        await forumHelpers.addFavorite(user.uid, postId)
+        setIsFavorited(true)
+      }
+    } catch (error) {
+      console.error('Error toggling favorite:', error)
+      alert('Failed to update favorite. Please try again.')
+    } finally {
+      setTogglingFavorite(false)
+    }
+  }
+
   const formatDate = (timestamp: any) => {
     if (!timestamp) return 'Recently'
     try {
