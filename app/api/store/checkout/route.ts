@@ -38,21 +38,64 @@ export async function POST(request: NextRequest) {
       }
     })
 
-    // Create checkout session with shipping address collection
-    // We'll calculate shipping dynamically via webhook when address is entered
+    // Calculate shipping from Printful if address is provided
+    // Otherwise, enable shipping address collection and calculate via webhook
+    let shippingOptions: any[] = []
+    
+    // If shipping address is provided, calculate rates now
+    if (body.shippingAddress && body.shippingAddress.zip) {
+      try {
+        const rates = await getShippingRates({
+          recipient: {
+            address1: body.shippingAddress.address1 || '',
+            city: body.shippingAddress.city || '',
+            state_code: body.shippingAddress.state_code || body.shippingAddress.state || '',
+            country_code: body.shippingAddress.country_code || body.shippingAddress.country || 'US',
+            zip: body.shippingAddress.zip,
+          },
+          items: items.map((item: any) => ({
+            variant_id: item.variantId,
+            quantity: item.quantity,
+          })),
+        })
+
+        console.log('📦 Calculated shipping rates from Printful:', rates)
+
+        // Transform to Stripe shipping options
+        shippingOptions = rates.map((rate: any) => ({
+          shipping_rate_data: {
+            type: 'fixed_amount',
+            fixed_amount: {
+              amount: Math.round(parseFloat(rate.rate || rate.retail_rate || '0') * 100),
+              currency: (rate.currency || 'USD').toLowerCase(),
+            },
+            display_name: rate.name || `${rate.service || 'Shipping'}${rate.delivery_days ? ` - ${rate.delivery_days} days` : ''}`,
+            delivery_estimate: rate.delivery_days
+              ? {
+                  minimum: { unit: 'business_day', value: Math.max(1, rate.delivery_days - 2) },
+                  maximum: { unit: 'business_day', value: rate.delivery_days + 2 },
+                }
+              : undefined,
+          },
+        }))
+      } catch (shippingError: any) {
+        console.warn('⚠️ Could not calculate shipping, will use default:', shippingError)
+      }
+    }
+
+    // Create checkout session with shipping
     const session = await createCheckoutSession(
       lineItems,
       `${request.nextUrl.origin}/store/success?session_id={CHECKOUT_SESSION_ID}`,
       `${request.nextUrl.origin}/store`,
       {
-        // Store metadata for order fulfillment and shipping calculation
         items: JSON.stringify(items),
       },
-      true // Enable shipping address collection
+      !body.shippingAddress || !body.shippingAddress.zip, // Enable address collection if not provided
+      shippingOptions.length > 0 ? shippingOptions : undefined
     )
 
-    console.log('✅ Checkout session created with shipping address collection')
-    console.log('📦 Shipping will be calculated from Printful when customer enters address')
+    console.log('✅ Checkout session created', shippingOptions.length > 0 ? 'with shipping options' : 'with address collection enabled')
 
     return NextResponse.json({ url: session.url })
   } catch (error: any) {
