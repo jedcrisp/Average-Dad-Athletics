@@ -29,57 +29,6 @@ export async function POST(request: NextRequest) {
     // Verify webhook signature
     const event = verifyWebhookSignature(body, signature, webhookSecret)
 
-    // Handle checkout session updates (when shipping address is entered)
-    if (event.type === 'checkout.session.async_payment_succeeded' || event.type === 'checkout.session.updated') {
-      const session = event.data.object as any
-      
-      // If shipping address is provided but no shipping rate is set, calculate and update
-      if (session.shipping_address && !session.shipping_cost && session.metadata?.items) {
-        try {
-          const items = JSON.parse(session.metadata.items || '[]')
-          
-          // Get shipping rates from Printful
-          const rates = await getShippingRates({
-            recipient: {
-              address1: session.shipping_address.line1 || '',
-              city: session.shipping_address.city || '',
-              state_code: session.shipping_address.state || '',
-              country_code: session.shipping_address.country || 'US',
-              zip: session.shipping_address.postal_code || '',
-            },
-            items: items.map((item: any) => ({
-              variant_id: item.variantId,
-              quantity: item.quantity,
-            })),
-          })
-
-          if (rates && rates.length > 0) {
-            // Use the first (cheapest) shipping rate
-            const selectedRate = rates[0]
-            const shippingAmount = Math.round(parseFloat(selectedRate.rate || selectedRate.retail_rate || '0') * 100)
-            
-            // Update the checkout session with shipping
-            await stripe.checkout.sessions.update(session.id, {
-              shipping_options: rates.map((rate: any) => ({
-                shipping_rate_data: {
-                  type: 'fixed_amount',
-                  fixed_amount: {
-                    amount: Math.round(parseFloat(rate.rate || rate.retail_rate || '0') * 100),
-                    currency: (rate.currency || 'USD').toLowerCase(),
-                  },
-                  display_name: rate.name || `${rate.service || 'Shipping'}${rate.delivery_days ? ` - ${rate.delivery_days} days` : ''}`,
-                },
-              })),
-            })
-            
-            console.log('✅ Updated checkout session with shipping rates')
-          }
-        } catch (shippingError) {
-          console.error('Error calculating shipping in webhook:', shippingError)
-        }
-      }
-    }
-
     // Handle the event
     if (event.type === 'checkout.session.completed') {
       const session = event.data.object as any
