@@ -100,7 +100,27 @@ export async function POST() {
           : 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=800&h=800&fit=crop&crop=center'
 
         // Prepare product data for Firestore
-        const productData = {
+        // Helper function to remove undefined values (Firestore doesn't allow undefined)
+        const removeUndefined = (obj: any): any => {
+          if (obj === null || obj === undefined) {
+            return null
+          }
+          if (Array.isArray(obj)) {
+            return obj.map(removeUndefined)
+          }
+          if (typeof obj === 'object') {
+            const cleaned: any = {}
+            for (const [key, value] of Object.entries(obj)) {
+              if (value !== undefined) {
+                cleaned[key] = removeUndefined(value)
+              }
+            }
+            return cleaned
+          }
+          return obj
+        }
+
+        const productData = removeUndefined({
           id: product.id.toString(),
           name: product.name,
           description: product.description || 'Premium quality product',
@@ -109,19 +129,19 @@ export async function POST() {
           image: image,
           printfulProductId: product.id,
           category: product.type || 'apparel',
-          // Store Printful data for reference
+          // Store Printful data for reference (only if values exist)
           printfulData: {
-            type: product.type,
-            dimensions: product.dimensions,
-            size: product.size,
-            availability_status: product.availability_status,
+            ...(product.type && { type: product.type }),
+            ...(product.dimensions && { dimensions: product.dimensions }),
+            ...(product.size && { size: product.size }),
+            ...(product.availability_status && { availability_status: product.availability_status }),
           },
           // Store files for variant images
           files: product.files || [],
           // Store options for variants
           options: product.options || [],
           syncedAt: new Date().toISOString(),
-        }
+        })
 
         // Save to Firestore
         console.log(`   💾 Saving to Firestore: storeProducts/${product.id.toString()}`)
