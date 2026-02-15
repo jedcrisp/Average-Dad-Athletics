@@ -54,7 +54,7 @@ export default function Navbar() {
               </Link>
             )}
             {userIsAdmin && (
-              <Link href="/admin/workouts" className="text-gray-700 hover:text-primary-600 font-medium transition-colors">
+              <Link href="/admin" className="text-gray-700 hover:text-primary-600 font-medium transition-colors">
                 Admin
               </Link>
             )}
@@ -140,7 +140,7 @@ export default function Navbar() {
             )}
             {userIsAdmin && (
               <Link
-                href="/admin/workouts"
+                href="/admin"
                 className="block px-3 py-2 text-gray-700 hover:bg-primary-50 rounded-md"
                 onClick={() => setMobileMenuOpen(false)}
               >
