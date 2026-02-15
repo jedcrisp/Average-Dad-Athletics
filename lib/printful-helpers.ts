@@ -390,6 +390,8 @@ export async function getShippingRates(data: {
   const apiKey = getPrintfulApiKey()
   
   try {
+    console.log('📦 Requesting shipping rates from Printful:', JSON.stringify(data, null, 2))
+    
     const response = await fetch(`${PRINTFUL_API_BASE}/shipping/rates`, {
       method: 'POST',
       headers: {
@@ -399,14 +401,29 @@ export async function getShippingRates(data: {
       body: JSON.stringify(data),
     })
 
+    console.log('📡 Printful shipping API response status:', response.status, response.statusText)
+
     if (!response.ok) {
-      throw new Error(`Printful API error: ${response.statusText}`)
+      const errorText = await response.text()
+      console.error('❌ Printful shipping API error:', errorText)
+      throw new Error(`Printful API error: ${response.statusText} - ${errorText}`)
     }
 
     const result = await response.json()
-    return result.result
+    console.log('📦 Printful shipping API response:', JSON.stringify(result, null, 2))
+    
+    // Printful returns rates in result.result (array) or result (array)
+    const rates = result.result || result
+    
+    if (!Array.isArray(rates)) {
+      console.warn('⚠️ Printful shipping rates is not an array:', typeof rates, rates)
+      return []
+    }
+    
+    console.log(`✅ Found ${rates.length} shipping rate(s)`)
+    return rates
   } catch (error) {
-    console.error('Error fetching shipping rates:', error)
+    console.error('❌ Error fetching shipping rates:', error)
     throw error
   }
 }

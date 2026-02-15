@@ -38,29 +38,41 @@ export async function POST(request: NextRequest) {
       }
     })
 
-    // Calculate shipping from Printful if address is provided
-    // Otherwise, enable shipping address collection and calculate via webhook
+    // Calculate shipping from Printful
+    // If address is provided, calculate specific rates; otherwise use US default for estimate
     let shippingOptions: any[] = []
+    let enableAddressCollection = true
     
-    // If shipping address is provided, calculate rates now
-    if (body.shippingAddress && body.shippingAddress.zip) {
-      try {
-        const rates = await getShippingRates({
-          recipient: {
+    // Try to calculate shipping rates
+    try {
+      // Use provided address or default to US for estimate
+      const recipient = body.shippingAddress && body.shippingAddress.zip
+        ? {
             address1: body.shippingAddress.address1 || '',
             city: body.shippingAddress.city || '',
             state_code: body.shippingAddress.state_code || body.shippingAddress.state || '',
             country_code: body.shippingAddress.country_code || body.shippingAddress.country || 'US',
             zip: body.shippingAddress.zip,
-          },
-          items: items.map((item: any) => ({
-            variant_id: item.variantId,
-            quantity: item.quantity,
-          })),
-        })
+          }
+        : {
+            address1: '123 Main St',
+            city: 'New York',
+            state_code: 'NY',
+            country_code: 'US',
+            zip: '10001',
+          }
 
-        console.log('📦 Calculated shipping rates from Printful:', rates)
+      const rates = await getShippingRates({
+        recipient,
+        items: items.map((item: any) => ({
+          variant_id: item.variantId,
+          quantity: item.quantity,
+        })),
+      })
 
+      console.log('📦 Calculated shipping rates from Printful:', JSON.stringify(rates, null, 2))
+
+      if (rates && Array.isArray(rates) && rates.length > 0) {
         // Transform to Stripe shipping options
         shippingOptions = rates.map((rate: any) => ({
           shipping_rate_data: {
@@ -78,10 +90,46 @@ export async function POST(request: NextRequest) {
               : undefined,
           },
         }))
-      } catch (shippingError: any) {
-        console.warn('⚠️ Could not calculate shipping, will use default:', shippingError)
+        
+        // If we got rates with a real address, don't enable address collection
+        if (body.shippingAddress && body.shippingAddress.zip) {
+          enableAddressCollection = false
+        }
+      } else {
+        console.warn('⚠️ No shipping rates returned from Printful')
       }
+    } catch (shippingError: any) {
+      console.error('❌ Error calculating shipping:', shippingError)
+      // Fall back to default shipping option
+      shippingOptions = [{
+        shipping_rate_data: {
+          type: 'fixed_amount',
+          fixed_amount: {
+            amount: 500, // $5.00 default
+            currency: 'usd',
+          },
+          display_name: 'Standard Shipping',
+        },
+      }]
     }
+
+    // Always provide shipping options (even if estimated)
+    if (shippingOptions.length === 0) {
+      // Last resort default
+      shippingOptions = [{
+        shipping_rate_data: {
+          type: 'fixed_amount',
+          fixed_amount: {
+            amount: 500, // $5.00
+            currency: 'usd',
+          },
+          display_name: 'Standard Shipping',
+        },
+      }]
+    }
+
+    console.log('✅ Shipping options to send to Stripe:', JSON.stringify(shippingOptions, null, 2))
+    console.log('📍 Enable address collection:', enableAddressCollection)
 
     // Create checkout session with shipping
     const session = await createCheckoutSession(
@@ -91,11 +139,11 @@ export async function POST(request: NextRequest) {
       {
         items: JSON.stringify(items),
       },
-      !body.shippingAddress || !body.shippingAddress.zip, // Enable address collection if not provided
-      shippingOptions.length > 0 ? shippingOptions : undefined
+      enableAddressCollection, // Enable address collection if needed
+      shippingOptions // Always provide shipping options
     )
 
-    console.log('✅ Checkout session created', shippingOptions.length > 0 ? 'with shipping options' : 'with address collection enabled')
+    console.log('✅ Checkout session created with', shippingOptions.length, 'shipping option(s)')
 
     return NextResponse.json({ url: session.url })
   } catch (error: any) {
