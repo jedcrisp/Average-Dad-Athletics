@@ -270,11 +270,22 @@ export const forumHelpers = {
   async create(post: Omit<ForumPost, 'id'>): Promise<string> {
     if (!db) throw new Error('Firebase is not configured')
     const postsRef = collection(db, 'forumPosts')
-    const docRef = await addDoc(postsRef, {
+    
+    // Remove undefined values (Firestore doesn't allow them)
+    const cleanPost: any = {
       ...post,
       createdAt: Timestamp.now(),
       updatedAt: Timestamp.now()
+    }
+    
+    // Remove undefined fields
+    Object.keys(cleanPost).forEach(key => {
+      if (cleanPost[key] === undefined) {
+        delete cleanPost[key]
+      }
     })
+    
+    const docRef = await addDoc(postsRef, cleanPost)
     return docRef.id
   },
 
