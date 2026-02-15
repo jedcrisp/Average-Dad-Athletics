@@ -42,9 +42,13 @@ export async function createCheckoutSession(
       success_url: successUrl,
       cancel_url: cancelUrl,
       metadata: metadata || {},
-      // Stripe Checkout automatically collects customer email and sends confirmation emails
-      // when payment is successful. No additional configuration needed.
-      // The email receipt includes order details, payment info, and receipt PDF.
+      // Explicitly enable email collection (required for automatic receipts)
+      // Stripe will collect email during checkout and send confirmation email after payment
+      customer_email: undefined, // undefined = Stripe will collect email in checkout form
+      // Ensure invoices are not created (we're using one-time payments, not subscriptions)
+      invoice_creation: {
+        enabled: false,
+      },
     }
 
     // Enable shipping address collection if requested

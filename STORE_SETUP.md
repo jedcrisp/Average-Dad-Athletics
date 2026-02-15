@@ -50,24 +50,64 @@ The store integration works as follows:
 3. Copy your **Publishable key** (starts with `pk_test_...` for test, `pk_live_...` for production)
 
 ### 2.3 Enable Email Receipts
-Stripe Checkout automatically sends confirmation emails to customers after successful payment. To ensure this is enabled:
+Stripe Checkout automatically sends confirmation emails to customers after successful payment. **This must be enabled in your Stripe Dashboard.**
 
-1. Go to [Stripe Dashboard](https://dashboard.stripe.com/settings/emails)
-2. Navigate to **Settings > Email receipts**
-3. Enable **"Email receipts for Checkout"**
-4. Customize the email template if desired (optional)
-5. Test by making a test purchase
+#### Step-by-Step Instructions:
+
+1. **Go to Stripe Dashboard Email Settings**
+   - Visit: [https://dashboard.stripe.com/settings/emails](https://dashboard.stripe.com/settings/emails)
+   - Or navigate: Dashboard > Settings > Email receipts
+
+2. **Enable Checkout Email Receipts**
+   - Find the section **"Email receipts for Checkout"**
+   - Toggle it **ON** (should be green/enabled)
+   - If it's already on, toggle it off and back on to refresh
+
+3. **Verify Email Settings**
+   - Make sure **"Send email receipts for successful payments"** is enabled
+   - Check that your business email is set correctly
+   - Verify the email template looks good (you can customize it)
+
+4. **Test Mode vs Live Mode**
+   - **Test Mode**: Emails are sent to test email addresses (check Stripe test mode settings)
+   - **Live Mode**: Emails are sent to actual customer emails
+   - Make sure you're checking the correct mode!
+
+5. **Test the Integration**
+   - Make a test purchase
+   - Check the email address you used during checkout
+   - Check spam/junk folder if email doesn't arrive
+   - Verify in Stripe Dashboard > Payments that the payment shows "Email sent"
+
+#### Troubleshooting:
+
+- **No email received?**
+  - Check spam/junk folder
+  - Verify email receipts are enabled in Dashboard
+  - Check if you're in test mode (test emails may go to a different address)
+  - Look in Stripe Dashboard > Payments > [Payment] > "Receipt" section to see if email was sent
+
+- **Email receipts disabled?**
+  - Go to Settings > Email receipts
+  - Enable "Email receipts for Checkout"
+  - Save changes
+
+- **Wrong email address?**
+  - Customer must enter email during Stripe Checkout
+  - Email is collected automatically by Stripe
+  - Check the payment details in Stripe Dashboard to see what email was used
 
 **Note**: Email receipts are sent automatically when:
 - Payment is successful
-- Customer provides email during checkout
+- Customer provides email during checkout (collected automatically)
 - Email receipts are enabled in Dashboard settings
 
 The receipt includes:
-- Order summary
-- Payment details
+- Order summary with items
+- Payment details and amount
 - Downloadable receipt PDF
 - Shipping information (if applicable)
+- Business contact information
 
 ### 2.3 Set Up Webhook
 1. Go to [Stripe Dashboard > Webhooks](https://dashboard.stripe.com/webhooks)
