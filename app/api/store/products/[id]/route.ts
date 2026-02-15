@@ -100,9 +100,12 @@ export async function GET(
           // Get price - Printful returns price as string
           const variantPrice = v.retail_price || v.price || '24.99'
           
-          // Extract variant image - Printful variants have an 'image' field
-          // This is the color-specific image from Printful
-          const variantImageUrl = v.image || null
+          // Extract variant image - Printful variants may have images in different fields
+          // Check multiple possible image fields from Printful API
+          const variantImageUrl = v.image || v.product_image || v.placeholder || null
+          
+          // If image URL exists but might have access issues, we'll handle it on the frontend
+          // Some Printful images might be on S3 and have CORS/access restrictions
           
           console.log(`  Catalog Variant ${v.id}: ${v.name || `${v.size} - ${v.color}`}`)
           console.log(`    - availability_status: ${v.availability_status || 'not set'}`)
@@ -111,6 +114,9 @@ export async function GET(
           console.log(`    - price: ${variantPrice}`)
           console.log(`    - variant image from Printful: ${variantImageUrl ? variantImageUrl.substring(0, 80) + '...' : 'NO IMAGE'}`)
           console.log(`    - variant keys:`, Object.keys(v))
+          if (variantImageUrl) {
+            console.log(`    - image URL domain: ${new URL(variantImageUrl).hostname}`)
+          }
           
           return {
             id: v.id,
