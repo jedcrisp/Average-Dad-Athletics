@@ -88,7 +88,11 @@ export async function getPrintfulProducts(): Promise<PrintfulProduct[]> {
   const apiKey = getPrintfulApiKey()
   
   try {
-    const response = await fetch(`${PRINTFUL_API_BASE}/store/products`, {
+    const url = `${PRINTFUL_API_BASE}/store/products`
+    console.log('🔗 Printful API URL:', url)
+    console.log('🔑 API Key (first 10 chars):', apiKey.substring(0, 10) + '...')
+    
+    const response = await fetch(url, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${apiKey}`,
@@ -96,26 +100,74 @@ export async function getPrintfulProducts(): Promise<PrintfulProduct[]> {
       },
     })
 
+    console.log('📡 Printful API Response Status:', response.status, response.statusText)
+    console.log('📡 Response Headers:', Object.fromEntries(response.headers.entries()))
+
     if (!response.ok) {
       const errorText = await response.text()
-      console.error('Printful API error response:', errorText)
+      console.error('❌ Printful API error response:', errorText)
+      try {
+        const errorJson = JSON.parse(errorText)
+        console.error('❌ Error JSON:', errorJson)
+      } catch {
+        // Not JSON, that's okay
+      }
       throw new Error(`Printful API error: ${response.status} ${response.statusText}`)
     }
 
     const data = await response.json()
-    console.log('Printful API response structure:', {
+    console.log('📦 Full Printful API Response:', JSON.stringify(data, null, 2))
+    console.log('📊 Response Structure Analysis:', {
       hasResult: !!data.result,
+      resultType: typeof data.result,
       hasData: !!data.result?.data,
+      dataType: Array.isArray(data.result?.data) ? 'array' : typeof data.result?.data,
       dataLength: data.result?.data?.length,
-      fullResponse: JSON.stringify(data).substring(0, 500), // First 500 chars for debugging
+      resultKeys: data.result ? Object.keys(data.result) : [],
+      topLevelKeys: Object.keys(data),
     })
     
-    const products = data.result?.data || []
-    console.log(`Found ${products.length} products in Printful response`)
+    // Try different response structures
+    let products: any[] = []
+    
+    if (data.result?.data && Array.isArray(data.result.data)) {
+      products = data.result.data
+      console.log('✅ Found products in data.result.data')
+    } else if (Array.isArray(data.result)) {
+      products = data.result
+      console.log('✅ Found products in data.result (array)')
+    } else if (Array.isArray(data.data)) {
+      products = data.data
+      console.log('✅ Found products in data.data')
+    } else if (Array.isArray(data)) {
+      products = data
+      console.log('✅ Found products in root array')
+    } else {
+      console.warn('⚠️ Could not find products array in response')
+      console.log('Available paths:', {
+        'data.result.data': data.result?.data,
+        'data.result': data.result,
+        'data.data': data.data,
+        'data': data,
+      })
+    }
+    
+    console.log(`📦 Extracted ${products.length} products from response`)
+    
+    if (products.length > 0) {
+      console.log('📋 First product sample:', JSON.stringify(products[0], null, 2))
+    }
     
     return products
   } catch (error) {
-    console.error('Error fetching Printful products:', error)
+    console.error('❌ Error fetching Printful products:', error)
+    if (error instanceof Error) {
+      console.error('Error details:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name,
+      })
+    }
     throw error
   }
 }
