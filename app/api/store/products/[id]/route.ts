@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getPrintfulStoreProduct, getPrintfulProductVariants } from '@/lib/printful-helpers'
+import { getPrintfulStoreProduct, getPrintfulProductVariants, extractProductImage } from '@/lib/printful-helpers'
 
 export async function GET(
   request: NextRequest,
@@ -18,40 +18,9 @@ export async function GET(
       )
     }
 
-    // Get product image - try multiple sources
-    let image = 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=800&h=800&fit=crop&crop=center'
-    
-    // Check files array first
-    if (storeProduct.files && storeProduct.files.length > 0) {
-      const file = storeProduct.files[0]
-      image = file.preview_url || file.thumbnail_url || image
-      console.log(`Product ${productId} image from files:`, image)
-    }
-    
-    // Check for direct image properties
-    if (!image || image.includes('unsplash.com')) {
-      if (storeProduct.image) {
-        image = storeProduct.image
-        console.log(`Product ${productId} image from product.image:`, image)
-      } else if (storeProduct.thumbnail) {
-        image = storeProduct.thumbnail
-        console.log(`Product ${productId} image from product.thumbnail:`, image)
-      } else if (storeProduct.thumbnail_url) {
-        image = storeProduct.thumbnail_url
-        console.log(`Product ${productId} image from product.thumbnail_url:`, image)
-      } else if (storeProduct.preview_url) {
-        image = storeProduct.preview_url
-        console.log(`Product ${productId} image from product.preview_url:`, image)
-      }
-    }
-    
-    // Log for debugging
-    console.log(`Product ${productId} full structure:`, {
-      hasFiles: !!storeProduct.files,
-      filesLength: storeProduct.files?.length || 0,
-      imageKeys: Object.keys(storeProduct).filter(k => k.toLowerCase().includes('image') || k.toLowerCase().includes('thumbnail') || k.toLowerCase().includes('preview')),
-      finalImage: image,
-    })
+    // Use shared image extraction function for consistency with storefront
+    const image = extractProductImage(storeProduct)
+    console.log(`Product ${productId} extracted image: ${image}`)
 
     // Get variants - try store product variants first, then catalog variants
     let variants: any[] = []

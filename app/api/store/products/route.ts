@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { getPrintfulProducts, PrintfulProduct } from '@/lib/printful-helpers'
+import { getPrintfulProducts, PrintfulProduct, extractProductImage } from '@/lib/printful-helpers'
 
 export async function GET() {
   try {
@@ -27,42 +27,11 @@ export async function GET() {
         return true
       })
       .map((p: PrintfulProduct) => {
-        // Try multiple image sources from Printful response
-        let image = 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=800&h=800&fit=crop&crop=center'
+        // Use shared image extraction function for consistency
+        const image = extractProductImage(p)
         
-        // Check files array first
-        if (p.files && p.files.length > 0) {
-          const file = p.files[0]
-          image = file.preview_url || file.thumbnail_url || image
-          console.log(`Product ${p.id} image from files:`, image)
-        }
-        
-        // Check for direct image properties on product
-        if (!image || image.includes('unsplash.com')) {
-          const productAny = p as any
-          if (productAny.image) {
-            image = productAny.image
-            console.log(`Product ${p.id} image from product.image:`, image)
-          } else if (productAny.thumbnail) {
-            image = productAny.thumbnail
-            console.log(`Product ${p.id} image from product.thumbnail:`, image)
-          } else if (productAny.thumbnail_url) {
-            image = productAny.thumbnail_url
-            console.log(`Product ${p.id} image from product.thumbnail_url:`, image)
-          } else if (productAny.preview_url) {
-            image = productAny.preview_url
-            console.log(`Product ${p.id} image from product.preview_url:`, image)
-          }
-        }
-        
-        // Log full product structure for debugging
         console.log(`Processing product: ${p.id} - ${p.name}`)
         console.log(`  Image URL: ${image}`)
-        console.log(`  Files array:`, p.files ? `${p.files.length} files` : 'no files')
-        if (p.files && p.files.length > 0) {
-          console.log(`  First file:`, JSON.stringify(p.files[0], null, 2))
-        }
-        console.log(`  Full product keys:`, Object.keys(p))
         
         return {
           id: p.id.toString(),

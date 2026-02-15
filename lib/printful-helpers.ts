@@ -82,6 +82,28 @@ function getPrintfulApiKey(): string {
 }
 
 /**
+ * Extract image URL from Printful product (shared logic for consistency)
+ */
+export function extractProductImage(product: any): string {
+  const defaultImage = 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=800&h=800&fit=crop&crop=center'
+  
+  // Check files array first (most reliable)
+  if (product.files && product.files.length > 0) {
+    const file = product.files[0]
+    if (file.preview_url) return file.preview_url
+    if (file.thumbnail_url) return file.thumbnail_url
+  }
+  
+  // Check for direct image properties
+  if (product.image) return product.image
+  if (product.thumbnail) return product.thumbnail
+  if (product.thumbnail_url) return product.thumbnail_url
+  if (product.preview_url) return product.preview_url
+  
+  return defaultImage
+}
+
+/**
  * Fetch products from Printful catalog
  */
 export async function getPrintfulProducts(): Promise<PrintfulProduct[]> {
