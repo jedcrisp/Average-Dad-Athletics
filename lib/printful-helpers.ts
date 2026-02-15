@@ -109,7 +109,34 @@ export async function getPrintfulProducts(): Promise<PrintfulProduct[]> {
 }
 
 /**
- * Get product variants (sizes, colors, etc.)
+ * Get a single store product from Printful
+ */
+export async function getPrintfulStoreProduct(storeProductId: string): Promise<any> {
+  const apiKey = getPrintfulApiKey()
+  
+  try {
+    const response = await fetch(`${PRINTFUL_API_BASE}/store/products/${storeProductId}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+    })
+
+    if (!response.ok) {
+      throw new Error(`Printful API error: ${response.statusText}`)
+    }
+
+    const data = await response.json()
+    return data.result
+  } catch (error) {
+    console.error('Error fetching Printful store product:', error)
+    throw error
+  }
+}
+
+/**
+ * Get product variants (sizes, colors, etc.) from catalog
  */
 export async function getPrintfulProductVariants(productId: number): Promise<PrintfulVariant[]> {
   const apiKey = getPrintfulApiKey()
