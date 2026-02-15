@@ -54,19 +54,33 @@ export async function GET() {
           return true
         })
         .map(async (p: PrintfulProduct) => {
-          // Use shared image extraction function for consistency
-          const image = extractProductImage(p)
-          
           console.log(`Processing product: ${p.id} - ${p.name}`)
-          console.log(`  Image URL: ${image}`)
           
-          // Fetch variants to calculate price range
+          // Fetch full store product to get better image and variants
+          let image = extractProductImage(p) // Start with list product image
           let priceRange = { min: 24.99, max: 24.99, currency: 'usd' }
           
           try {
-            // First try to get store product with sync_variants
+            // Get full store product (has better image extraction with catalog fallback)
             const storeProduct = await getPrintfulStoreProduct(p.id.toString())
             
+            // Use image from full store product (it has fallback to catalog product)
+            const storeProductImage = extractProductImage(storeProduct)
+            const defaultImage = 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=800&h=800&fit=crop&crop=center'
+            
+            // Only use store product image if it's not the default and is different/better
+            if (storeProductImage && storeProductImage !== defaultImage) {
+              image = storeProductImage
+              console.log(`  ✅ Using image from store product: ${image.substring(0, 80)}...`)
+            } else if (image === defaultImage && storeProductImage !== defaultImage) {
+              // If list image is default but store product has something, use it
+              image = storeProductImage
+              console.log(`  ✅ Using store product image (list had default): ${image.substring(0, 80)}...`)
+            } else {
+              console.log(`  📸 Using image from list: ${image.substring(0, 80)}...`)
+            }
+            
+            // Calculate price range from variants
             if (storeProduct.sync_variants && Array.isArray(storeProduct.sync_variants) && storeProduct.sync_variants.length > 0) {
               console.log(`  Found ${storeProduct.sync_variants.length} sync_variants for price calculation`)
               priceRange = calculatePriceRange(storeProduct.sync_variants)
@@ -79,11 +93,12 @@ export async function GET() {
               }
             }
           } catch (variantError: any) {
-            console.warn(`  Could not fetch variants for product ${p.id}, using default price:`, variantError.message)
-            // Use default price if variant fetch fails
+            console.warn(`  Could not fetch full product details for ${p.id}:`, variantError.message)
+            // Keep the image from list API if store product fetch fails
           }
           
           console.log(`  Price range: $${priceRange.min.toFixed(2)} - $${priceRange.max.toFixed(2)}`)
+          console.log(`  Final image: ${image.substring(0, 80)}...`)
           
           return {
             id: p.id.toString(),

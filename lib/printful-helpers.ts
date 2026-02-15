@@ -87,18 +87,59 @@ function getPrintfulApiKey(): string {
 export function extractProductImage(product: any): string {
   const defaultImage = 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=800&h=800&fit=crop&crop=center'
   
-  // Check files array first (most reliable)
-  if (product.files && product.files.length > 0) {
-    const file = product.files[0]
-    if (file.preview_url) return file.preview_url
-    if (file.thumbnail_url) return file.thumbnail_url
+  if (!product) {
+    console.warn('⚠️ extractProductImage: product is null/undefined')
+    return defaultImage
   }
   
-  // Check for direct image properties
-  if (product.image) return product.image
-  if (product.thumbnail) return product.thumbnail
-  if (product.thumbnail_url) return product.thumbnail_url
-  if (product.preview_url) return product.preview_url
+  // Check files array first (most reliable for store products)
+  if (product.files && Array.isArray(product.files) && product.files.length > 0) {
+    const file = product.files[0]
+    if (file.preview_url) {
+      console.log('✅ Found image in files[0].preview_url')
+      return file.preview_url
+    }
+    if (file.thumbnail_url) {
+      console.log('✅ Found image in files[0].thumbnail_url')
+      return file.thumbnail_url
+    }
+    if (file.url) {
+      console.log('✅ Found image in files[0].url')
+      return file.url
+    }
+  }
+  
+  // Check for direct image properties (catalog products often have these)
+  if (product.image) {
+    console.log('✅ Found image in product.image')
+    return product.image
+  }
+  if (product.thumbnail) {
+    console.log('✅ Found image in product.thumbnail')
+    return product.thumbnail
+  }
+  if (product.thumbnail_url) {
+    console.log('✅ Found image in product.thumbnail_url')
+    return product.thumbnail_url
+  }
+  if (product.preview_url) {
+    console.log('✅ Found image in product.preview_url')
+    return product.preview_url
+  }
+  
+  // Check sync_variants for images (new products might have images here)
+  if (product.sync_variants && Array.isArray(product.sync_variants) && product.sync_variants.length > 0) {
+    const firstVariant = product.sync_variants[0]
+    if (firstVariant.image) {
+      console.log('✅ Found image in sync_variants[0].image')
+      return firstVariant.image
+    }
+  }
+  
+  // Log what we found for debugging
+  console.warn('⚠️ No image found in product, using default. Product keys:', Object.keys(product))
+  if (product.files) console.log('  files:', product.files.length, 'items')
+  if (product.sync_variants) console.log('  sync_variants:', product.sync_variants.length, 'items')
   
   return defaultImage
 }
