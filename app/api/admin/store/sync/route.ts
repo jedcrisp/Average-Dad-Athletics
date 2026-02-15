@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getPrintfulProducts } from '@/lib/printful-helpers'
+import { getPrintfulProducts, extractProductImage } from '@/lib/printful-helpers'
 import { doc, setDoc } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 
@@ -91,10 +91,9 @@ export async function POST(request: NextRequest) {
           continue
         }
 
-        // Get the first image from files
-        const image = product.files && product.files.length > 0
-          ? product.files[0].preview_url || product.files[0].thumbnail_url
-          : 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=800&h=800&fit=crop&crop=center'
+        // Use shared image extraction function for consistency
+        const image = extractProductImage(product)
+        console.log(`   🖼️ Extracted image for ${product.id}: ${image.substring(0, 80)}...`)
 
         // Prepare product data for Firestore
         // Helper function to remove undefined values (Firestore doesn't allow undefined)
