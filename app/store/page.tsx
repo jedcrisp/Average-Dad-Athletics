@@ -86,7 +86,13 @@ export default function StorePage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold text-gray-900 mb-4">Store</h1>
-          <p className="text-xl text-gray-600">Premium Average Dad Athletics Merchandise</p>
+          <p className="text-xl text-gray-600 mb-4">Premium Average Dad Athletics Merchandise</p>
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-50 border border-green-200 rounded-lg text-green-800">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+            <span className="font-semibold">Free Shipping on Orders $50+</span>
+          </div>
         </div>
 
         {products.length === 0 ? (

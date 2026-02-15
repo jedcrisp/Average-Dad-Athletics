@@ -76,11 +76,31 @@ export default function CartPage() {
   }
 
   const total = getTotalPrice()
+  const freeShippingThreshold = 50
+  const amountNeeded = Math.max(0, freeShippingThreshold - total)
+  const qualifiesForFreeShipping = total >= freeShippingThreshold
 
   return (
     <div className="min-h-screen bg-gray-50 py-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-8">Shopping Cart</h1>
+        <h1 className="text-3xl font-bold text-gray-900 mb-4">Shopping Cart</h1>
+        
+        {/* Free Shipping Banner */}
+        {qualifiesForFreeShipping ? (
+          <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2 text-green-800">
+            <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+            <span className="font-semibold">🎉 You qualify for FREE shipping!</span>
+          </div>
+        ) : (
+          <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg flex items-center gap-2 text-blue-800">
+            <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>Add <strong>${amountNeeded.toFixed(2)}</strong> more to qualify for <strong>FREE shipping</strong> on orders $50+</span>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Cart Items */}
@@ -144,7 +164,13 @@ export default function CartPage() {
                 </div>
                 <div className="flex justify-between text-gray-600">
                   <span>Shipping</span>
-                  <span>Calculated at checkout</span>
+                  <span>
+                    {qualifiesForFreeShipping ? (
+                      <span className="text-green-600 font-semibold">FREE</span>
+                    ) : (
+                      'Calculated at checkout'
+                    )}
+                  </span>
                 </div>
                 <div className="border-t pt-2 flex justify-between text-lg font-bold text-gray-900">
                   <span>Total</span>

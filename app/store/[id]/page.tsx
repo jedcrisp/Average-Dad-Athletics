@@ -316,7 +316,15 @@ export default function ProductDetailPage() {
             {/* Product Details */}
             <div className="md:w-1/2 p-8">
               <h1 className="text-3xl font-bold text-gray-900 mb-4">{product.name}</h1>
-              <p className="text-gray-600 mb-6">{product.description}</p>
+              <p className="text-gray-600 mb-4">{product.description}</p>
+              
+              {/* Free Shipping Notice */}
+              <div className="mb-6 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2 text-green-800 text-sm">
+                <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                <span><strong>Free Shipping</strong> on orders $50+</span>
+              </div>
 
               {/* Color Selection */}
               {colorGroups.length > 0 && (
