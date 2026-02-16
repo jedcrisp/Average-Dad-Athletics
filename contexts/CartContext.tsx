@@ -6,7 +6,9 @@ export interface CartItem {
   productId: string
   productName: string
   productImage: string
-  variantId: number
+  variantId: number | string // Can be numeric (catalog) or alphanumeric (sync)
+  syncVariantId?: string // Sync variant ID (alphanumeric, e.g., "699204a318b1a7") - required for Printful orders
+  catalogVariantId?: number // Catalog variant ID (numeric, e.g., 6950) - for reference
   variantName: string
   size: string
   color: string

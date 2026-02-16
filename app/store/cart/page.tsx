@@ -32,7 +32,9 @@ export default function CartPage() {
         },
         body: JSON.stringify({
           items: items.map((item) => ({
-            variantId: item.variantId,
+            variantId: item.variantId, // Keep for backward compatibility
+            syncVariantId: (item as any).syncVariantId || item.variantId, // Use sync variant ID if available
+            catalogVariantId: (item as any).catalogVariantId, // Catalog variant ID for reference
             quantity: item.quantity,
             productId: item.productId,
             productName: item.productName,

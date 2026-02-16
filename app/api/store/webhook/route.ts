@@ -75,6 +75,17 @@ export async function POST(request: NextRequest) {
       try {
         items = JSON.parse(session.metadata?.items || '[]')
         console.log('📋 Parsed items from metadata:', JSON.stringify(items, null, 2))
+        
+        // Log variant ID information for debugging
+        items.forEach((item: any, index: number) => {
+          console.log(`📦 Item ${index}:`, {
+            variantId: item.variantId,
+            syncVariantId: item.syncVariantId,
+            catalogVariantId: item.catalogVariantId,
+            productId: item.productId,
+            productName: item.productName,
+          })
+        })
       } catch (parseError) {
         console.error('❌ Failed to parse items from metadata:', parseError)
         console.error('❌ Metadata items string:', session.metadata?.items)
@@ -124,9 +135,32 @@ export async function POST(request: NextRequest) {
       try {
         // Validate variant IDs and fetch print files for each item
         const printfulItems = await Promise.all(items.map(async (item: any) => {
-          const variantId = parseInt(item.variantId)
-          if (isNaN(variantId) || variantId <= 0) {
-            throw new Error(`Invalid variant ID: ${item.variantId} for product ${item.productName || 'unknown'}`)
+          // Use sync_variant_id if available (required for sync products)
+          // Otherwise fall back to variantId (for catalog products)
+          const syncVariantId = item.syncVariantId || item.sync_variant_id
+          const catalogVariantId = item.catalogVariantId || item.catalog_variant_id
+          const variantId = item.variantId
+          
+          // For sync products, we need the sync_variant_id (alphanumeric)
+          // For catalog products, we use the numeric variant_id
+          let printfulVariantId: string | number
+          
+          if (syncVariantId) {
+            // Use sync variant ID (alphanumeric string like "699204a318b1a7")
+            printfulVariantId = syncVariantId
+            console.log(`✅ Using sync_variant_id: ${syncVariantId} for product ${item.productName || 'unknown'}`)
+          } else if (catalogVariantId) {
+            // Fallback to catalog variant ID (numeric)
+            printfulVariantId = parseInt(catalogVariantId)
+            console.log(`⚠️ No sync_variant_id, using catalog_variant_id: ${catalogVariantId}`)
+          } else {
+            // Last resort: try to parse variantId
+            const parsedId = typeof variantId === 'string' ? variantId : parseInt(variantId)
+            if (isNaN(parsedId as any) || (typeof parsedId === 'number' && parsedId <= 0)) {
+              throw new Error(`Invalid variant ID: ${variantId} for product ${item.productName || 'unknown'}. Need sync_variant_id for sync products.`)
+            }
+            printfulVariantId = parsedId
+            console.log(`⚠️ No sync_variant_id or catalog_variant_id, using variantId: ${variantId}`)
           }
           
           // Get print files for this variant (required by Printful)
@@ -135,21 +169,23 @@ export async function POST(request: NextRequest) {
           let printFiles: Array<{ url: string; type?: string }> = []
           
           if (productId) {
-            console.log(`📎 Fetching print files for product ${productId}, variant ${variantId}`)
+            // For print files, we can use either sync variant ID or catalog variant ID
+            const fileVariantId = typeof printfulVariantId === 'string' ? parseInt(catalogVariantId || '0') : printfulVariantId
+            console.log(`📎 Fetching print files for product ${productId}, variant ${fileVariantId}`)
             try {
-              printFiles = await getPrintFilesForVariant(productId, variantId)
-              console.log(`📎 Retrieved ${printFiles.length} print file(s) for variant ${variantId}`)
+              printFiles = await getPrintFilesForVariant(productId, fileVariantId)
+              console.log(`📎 Retrieved ${printFiles.length} print file(s) for variant ${fileVariantId}`)
             } catch (fileError) {
-              console.warn(`⚠️ Could not fetch print files for variant ${variantId}:`, fileError)
+              console.warn(`⚠️ Could not fetch print files for variant ${fileVariantId}:`, fileError)
               console.warn(`⚠️ Product ID used: ${productId} (should be sync product ID like "699204a318b1a7")`)
               // Continue without files - Printful will reject if files are truly required
             }
           } else {
-            console.warn(`⚠️ No product ID provided for variant ${variantId}`)
+            console.warn(`⚠️ No product ID provided for variant ${printfulVariantId}`)
           }
           
           const itemData: any = {
-            variant_id: variantId,
+            variant_id: printfulVariantId, // Use sync_variant_id if available, otherwise catalog variant_id
             quantity: parseInt(item.quantity) || 1,
           }
           

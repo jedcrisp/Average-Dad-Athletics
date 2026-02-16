@@ -56,13 +56,20 @@ export async function GET(
     if (storeProduct.sync_variants && Array.isArray(storeProduct.sync_variants) && storeProduct.sync_variants.length > 0) {
       console.log(`📦 Found ${storeProduct.sync_variants.length} sync_variants in store product`)
       variants = storeProduct.sync_variants.map((v: any) => {
-        const variantId = v.variant_id || v.id
+        // For sync variants:
+        // - v.id is the sync_variant_id (what we need for Printful orders)
+        // - v.variant_id is the catalog variant_id (for reference)
+        const syncVariantId = v.id // Sync variant ID (alphanumeric, e.g., "699204a318b1a7")
+        const catalogVariantId = v.variant_id // Catalog variant ID (numeric, e.g., 6950)
+        const variantId = catalogVariantId || syncVariantId // Use catalog ID if available, otherwise sync ID
         const isInStock = v.is_enabled !== false && v.availability_status !== 'out_of_stock'
         
-        console.log(`  Store Variant ${variantId}: enabled=${v.is_enabled}, status=${v.availability_status}, in_stock=${isInStock}`)
+        console.log(`  Store Variant: sync_variant_id=${syncVariantId}, catalog_variant_id=${catalogVariantId}, enabled=${v.is_enabled}, status=${v.availability_status}, in_stock=${isInStock}`)
         
         return {
-          id: variantId,
+          id: variantId, // Keep catalog variant ID for compatibility
+          sync_variant_id: syncVariantId, // Add sync variant ID (required for Printful orders)
+          catalog_variant_id: catalogVariantId, // Catalog variant ID for reference
           name: v.name || `${v.size || ''} - ${v.color || ''}`,
           size: v.size || '',
           color: v.color || '',

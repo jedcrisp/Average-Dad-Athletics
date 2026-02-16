@@ -37,7 +37,9 @@ export async function POST(request: NextRequest) {
             name: item.productName || 'Product',
             description: `Variant ID: ${item.variantId}`,
             metadata: {
-              variant_id: item.variantId.toString(),
+              variant_id: item.variantId?.toString() || '',
+              sync_variant_id: item.syncVariantId || item.variantId?.toString() || '', // Use sync variant ID if available
+              catalog_variant_id: item.catalogVariantId?.toString() || '', // Catalog variant ID for reference
               product_id: item.productId || '',
             },
           },

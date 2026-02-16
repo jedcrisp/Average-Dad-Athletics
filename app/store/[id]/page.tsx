@@ -6,7 +6,9 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useCart } from '@/contexts/CartContext'
 
 interface ProductVariant {
-  id: number
+  id: number | string
+  sync_variant_id?: string // Sync variant ID (alphanumeric, e.g., "699204a318b1a7")
+  catalog_variant_id?: number // Catalog variant ID (numeric, e.g., 6950)
   name: string
   size: string
   color: string
@@ -154,6 +156,8 @@ export default function ProductDetailPage() {
       productName: product.name,
       productImage: product.image,
       variantId: selectedVariant.id,
+      syncVariantId: selectedVariant.sync_variant_id,
+      catalogVariantId: selectedVariant.catalog_variant_id,
       variantName: selectedVariant.name,
       size: selectedVariant.size,
       color: selectedVariant.color,
@@ -186,7 +190,9 @@ export default function ProductDetailPage() {
         body: JSON.stringify({
           items: [
             {
-              variantId: selectedVariant.id,
+              variantId: selectedVariant.id, // Keep for backward compatibility
+              syncVariantId: selectedVariant.sync_variant_id || selectedVariant.id, // Use sync variant ID if available
+              catalogVariantId: selectedVariant.catalog_variant_id, // Catalog variant ID for reference
               quantity: quantity,
               productId: product?.id,
               productName: product?.name,
