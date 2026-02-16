@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyWebhookSignature, stripe } from '@/lib/stripe-helpers'
-import { createPrintfulOrder } from '@/lib/printful-helpers'
+import { createPrintfulOrder, getPrintFilesForVariant } from '@/lib/printful-helpers'
 import { doc, getDoc, setDoc, Timestamp } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 
@@ -122,17 +122,41 @@ export async function POST(request: NextRequest) {
 
         // Create order in Printful
       try {
-        // Validate variant IDs are numbers
-        const printfulItems = items.map((item: any) => {
+        // Validate variant IDs and fetch print files for each item
+        const printfulItems = await Promise.all(items.map(async (item: any) => {
           const variantId = parseInt(item.variantId)
           if (isNaN(variantId) || variantId <= 0) {
             throw new Error(`Invalid variant ID: ${item.variantId} for product ${item.productName || 'unknown'}`)
           }
-          return {
+          
+          // Get print files for this variant (required by Printful)
+          const productId = item.productId || ''
+          let printFiles: Array<{ url: string; type?: string }> = []
+          
+          if (productId) {
+            try {
+              printFiles = await getPrintFilesForVariant(productId, variantId)
+            } catch (fileError) {
+              console.warn(`⚠️ Could not fetch print files for variant ${variantId}:`, fileError)
+              // Continue without files - Printful will reject if files are truly required
+            }
+          }
+          
+          const itemData: any = {
             variant_id: variantId,
             quantity: parseInt(item.quantity) || 1,
           }
-        })
+          
+          // Add print files if available
+          if (printFiles.length > 0) {
+            itemData.files = printFiles
+            console.log(`✅ Added ${printFiles.length} print file(s) to variant ${variantId}`)
+          } else {
+            console.warn(`⚠️ No print files found for variant ${variantId} - Printful may reject this order`)
+          }
+          
+          return itemData
+        }))
 
         const printfulOrderData = {
           recipient: {

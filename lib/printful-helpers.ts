@@ -357,6 +357,74 @@ export async function getPrintfulProductVariants(productId: number): Promise<Pri
 }
 
 /**
+ * Get print files for a store product variant
+ * Printful requires print files (designs) to be included with orders
+ */
+export async function getPrintFilesForVariant(storeProductId: string, variantId: number): Promise<Array<{ url: string; type?: string }>> {
+  const apiKey = getPrintfulApiKey()
+  
+  try {
+    // Get the store product to find print files
+    const response = await fetch(`${PRINTFUL_API_BASE}/store/products/${storeProductId}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+    })
+
+    if (!response.ok) {
+      console.warn(`⚠️ Could not fetch store product ${storeProductId} for print files`)
+      return []
+    }
+
+    const data = await response.json()
+    const storeProduct = data.result
+    
+    // Get print files from the store product
+    // Print files are typically stored in the product's files array
+    const printFiles: Array<{ url: string; type?: string }> = []
+    
+    if (storeProduct.files && Array.isArray(storeProduct.files)) {
+      for (const file of storeProduct.files) {
+        // Use the file URL - could be url, preview_url, or thumbnail_url
+        const fileUrl = file.url || file.preview_url || file.thumbnail_url
+        if (fileUrl) {
+          printFiles.push({
+            url: fileUrl,
+            type: file.type || 'default'
+          })
+        }
+      }
+    }
+    
+    // If no files found in product, check sync_variants for the specific variant
+    if (printFiles.length === 0 && storeProduct.sync_variants) {
+      const variant = storeProduct.sync_variants.find((v: any) => 
+        (v.variant_id || v.id) === variantId
+      )
+      if (variant && variant.files && Array.isArray(variant.files)) {
+        for (const file of variant.files) {
+          const fileUrl = file.url || file.preview_url || file.thumbnail_url
+          if (fileUrl) {
+            printFiles.push({
+              url: fileUrl,
+              type: file.type || 'default'
+            })
+          }
+        }
+      }
+    }
+    
+    console.log(`📎 Found ${printFiles.length} print file(s) for variant ${variantId}`)
+    return printFiles
+  } catch (error) {
+    console.error(`❌ Error fetching print files for variant ${variantId}:`, error)
+    return []
+  }
+}
+
+/**
  * Create an order in Printful
  * This is called after successful Stripe payment
  */
