@@ -170,11 +170,7 @@ export default function ProductDetailPage() {
   }
 
   const handleCheckout = async () => {
-    if (!user) {
-      router.push(`/login?redirect=/store/${params.id}`)
-      return
-    }
-
+    // No login required - Stripe Checkout handles guest checkout
     if (!selectedVariant) {
       alert('Please select a variant')
       return

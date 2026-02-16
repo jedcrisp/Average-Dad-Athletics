@@ -23,6 +23,7 @@ export default function AdminWorkoutsPage() {
     { movement: '', weight: '', time: '' }
   ])
   const [description, setDescription] = useState('')
+  const [status, setStatus] = useState<'scheduled' | 'active' | 'completed'>('active')
   const [hasCompetition, setHasCompetition] = useState(false)
   const [competitionType, setCompetitionType] = useState<'time' | 'weight' | 'reps' | 'distance'>('time')
   const [competitionMetric, setCompetitionMetric] = useState('')
@@ -30,6 +31,25 @@ export default function AdminWorkoutsPage() {
   const [competitionSort, setCompetitionSort] = useState<'asc' | 'desc'>('desc')
   // Development bypass - only in local dev
   const [devBypass, setDevBypass] = useState(false)
+  
+  // Auto-update status based on date selection
+  useEffect(() => {
+    const selectedDate = new Date(date)
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    selectedDate.setHours(0, 0, 0, 0)
+    
+    if (selectedDate > today) {
+      // Future date - set to scheduled
+      setStatus('scheduled')
+    } else if (selectedDate.getTime() === today.getTime()) {
+      // Today - set to active
+      setStatus('active')
+    } else {
+      // Past date - set to active (can be changed to completed if needed)
+      setStatus('active')
+    }
+  }, [date])
 
   useEffect(() => {
     const checkAdmin = async () => {
@@ -91,6 +111,7 @@ export default function AdminWorkoutsPage() {
       const workoutData: any = {
         title: title.trim(),
         date,
+        status, // Include status (scheduled, active, or completed)
       }
       
       // Optional fields - only include if they have values
@@ -239,6 +260,30 @@ export default function AdminWorkoutsPage() {
                     required
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                   />
+                  <p className="mt-1 text-xs text-gray-500">
+                    Select a future date to schedule the workout
+                  </p>
+                </div>
+                
+                <div>
+                  <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-2">
+                    Status *
+                  </label>
+                  <select
+                    id="status"
+                    value={status}
+                    onChange={(e) => setStatus(e.target.value as 'scheduled' | 'active' | 'completed')}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                  >
+                    <option value="scheduled">Scheduled (Future)</option>
+                    <option value="active">Active (Current/Past)</option>
+                    <option value="completed">Completed</option>
+                  </select>
+                  <p className="mt-1 text-xs text-gray-500">
+                    {status === 'scheduled' && 'Workout will be scheduled for the selected date'}
+                    {status === 'active' && 'Workout is currently active'}
+                    {status === 'completed' && 'Workout has been completed'}
+                  </p>
                 </div>
 
                 <div>

@@ -28,10 +28,25 @@ export default function WorkoutsPage() {
     fetchWorkouts()
   }, [])
 
-  // Sort workouts by date (newest first)
+  // Sort workouts: scheduled first (by date ascending), then active/completed (by date descending)
   const sortedWorkouts = [...workouts].sort((a, b) => {
-    return new Date(b.date).getTime() - new Date(a.date).getTime()
+    const aDate = new Date(a.date).getTime()
+    const bDate = new Date(b.date).getTime()
+    const aScheduled = a.status === 'scheduled'
+    const bScheduled = b.status === 'scheduled'
+    
+    // Scheduled workouts come first, sorted by date (earliest first)
+    if (aScheduled && !bScheduled) return -1
+    if (!aScheduled && bScheduled) return 1
+    if (aScheduled && bScheduled) return aDate - bDate
+    
+    // Other workouts sorted by date (newest first)
+    return bDate - aDate
   })
+  
+  // Separate scheduled and active workouts
+  const scheduledWorkouts = sortedWorkouts.filter(w => w.status === 'scheduled')
+  const activeWorkouts = sortedWorkouts.filter(w => w.status !== 'scheduled')
 
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4">
@@ -62,52 +77,132 @@ export default function WorkoutsPage() {
             </button>
           </div>
         ) : sortedWorkouts.length > 0 ? (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {sortedWorkouts.map((workout) => (
-              <Link
-                key={workout.id}
-                href={`/workouts/${workout.id}`}
-                className="bg-white rounded-lg shadow-md p-6 hover:shadow-xl transition-shadow block"
-              >
-                <div className="mb-4">
-                  <h3 className="text-xl font-bold text-gray-900">{workout.title}</h3>
-                </div>
+          <div className="space-y-8">
+            {/* Scheduled Workouts Section */}
+            {scheduledWorkouts.length > 0 && (
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                  <CalendarIcon className="w-6 h-6 text-primary-600" />
+                  Scheduled Workouts
+                </h2>
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                  {scheduledWorkouts.map((workout) => (
+                    <Link
+                      key={workout.id}
+                      href={`/workouts/${workout.id}`}
+                      className="bg-white rounded-lg shadow-md p-6 hover:shadow-xl transition-shadow block border-l-4 border-blue-500"
+                    >
+                      <div className="mb-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <h3 className="text-xl font-bold text-gray-900">{workout.title}</h3>
+                          <span className="px-2 py-1 text-xs font-semibold text-blue-700 bg-blue-100 rounded">
+                            Scheduled
+                          </span>
+                        </div>
+                      </div>
+                      <p className="text-gray-600 mb-4">{workout.description}</p>
 
-                <p className="text-gray-600 mb-4">{workout.description}</p>
+                      <div className="flex items-center gap-4 text-sm text-gray-500 mb-4">
+                        <div className="flex items-center gap-1">
+                          <CalendarIcon className="w-4 h-4" />
+                          {new Date(workout.date).toLocaleDateString()}
+                        </div>
+                        {workout.duration && (
+                          <div className="flex items-center gap-1">
+                            <ClockIcon className="w-4 h-4" />
+                            {workout.duration}
+                          </div>
+                        )}
+                      </div>
 
-                <div className="flex items-center gap-4 text-sm text-gray-500 mb-4">
-                  <div className="flex items-center gap-1">
-                    <CalendarIcon className="w-4 h-4" />
-                    {new Date(workout.date).toLocaleDateString()}
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <ClockIcon className="w-4 h-4" />
-                    {workout.duration}
-                  </div>
+                      {workout.exercises && workout.exercises.length > 0 && (
+                        <div className="border-t pt-4">
+                          <h4 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
+                            <FireIcon className="w-5 h-5 text-primary-600" />
+                            Exercises
+                          </h4>
+                          <ul className="space-y-1">
+                            {workout.exercises.slice(0, 3).map((exercise, index) => (
+                              <li key={index} className="text-gray-600 text-sm">
+                                • {exercise}
+                              </li>
+                            ))}
+                            {workout.exercises.length > 3 && (
+                              <li className="text-gray-500 text-sm">
+                                + {workout.exercises.length - 3} more
+                              </li>
+                            )}
+                          </ul>
+                        </div>
+                      )}
+                    </Link>
+                  ))}
                 </div>
+              </div>
+            )}
 
-                <div className="border-t pt-4">
-                  <h4 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
-                    <FireIcon className="w-5 h-5 text-primary-600" />
-                    Exercises
-                  </h4>
-                  <ul className="space-y-1">
-                    {workout.exercises.map((exercise, index) => (
-                      <li key={index} className="text-gray-600 text-sm">
-                        • {exercise}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-                {workout.competitionType && workout.competitionType !== 'none' && (
-                  <div className="mt-4 pt-4 border-t">
-                    <span className="inline-flex items-center gap-1 text-sm text-primary-600 font-semibold">
-                      🏆 Competition Active
-                    </span>
-                  </div>
+            {/* Active/Completed Workouts Section */}
+            {activeWorkouts.length > 0 && (
+              <div>
+                {scheduledWorkouts.length > 0 && (
+                  <h2 className="text-2xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                    <FireIcon className="w-6 h-6 text-primary-600" />
+                    Active Workouts
+                  </h2>
                 )}
-              </Link>
-            ))}
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {activeWorkouts.map((workout) => (
+                    <Link
+                      key={workout.id}
+                      href={`/workouts/${workout.id}`}
+                      className="bg-white rounded-lg shadow-md p-6 hover:shadow-xl transition-shadow block"
+                    >
+                      <div className="mb-4">
+                        <h3 className="text-xl font-bold text-gray-900">{workout.title}</h3>
+                      </div>
+
+                      <p className="text-gray-600 mb-4">{workout.description}</p>
+
+                      <div className="flex items-center gap-4 text-sm text-gray-500 mb-4">
+                        <div className="flex items-center gap-1">
+                          <CalendarIcon className="w-4 h-4" />
+                          {new Date(workout.date).toLocaleDateString()}
+                        </div>
+                        {workout.duration && (
+                          <div className="flex items-center gap-1">
+                            <ClockIcon className="w-4 h-4" />
+                            {workout.duration}
+                          </div>
+                        )}
+                      </div>
+
+                      {workout.exercises && workout.exercises.length > 0 && (
+                        <div className="border-t pt-4">
+                          <h4 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
+                            <FireIcon className="w-5 h-5 text-primary-600" />
+                            Exercises
+                          </h4>
+                          <ul className="space-y-1">
+                            {workout.exercises.map((exercise, index) => (
+                              <li key={index} className="text-gray-600 text-sm">
+                                • {exercise}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      {workout.competitionType && workout.competitionType !== 'none' && (
+                        <div className="mt-4 pt-4 border-t">
+                          <span className="inline-flex items-center gap-1 text-sm text-primary-600 font-semibold">
+                            🏆 Competition Active
+                          </span>
+                        </div>
+                      )}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         ) : (
           <div className="text-center py-12">

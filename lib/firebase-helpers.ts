@@ -31,6 +31,7 @@ export interface Workout {
   duration: string
   exercises: string[]
   description: string
+  status?: 'scheduled' | 'active' | 'completed' // Workout status: scheduled (future), active (current/past), completed
   // Competition fields
   competitionType?: 'time' | 'weight' | 'reps' | 'distance' | 'none'
   competitionMetric?: string // e.g., "Fastest Time", "Max Weight"
