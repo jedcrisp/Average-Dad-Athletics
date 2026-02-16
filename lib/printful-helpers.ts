@@ -416,7 +416,32 @@ export async function getPrintFilesForVariant(storeProductId: string, variantId:
       }
     }
     
+    // Also check sync_product for files if it exists
+    if (printFiles.length === 0 && storeProduct.sync_product) {
+      const syncProduct = storeProduct.sync_product
+      if (syncProduct.files && Array.isArray(syncProduct.files)) {
+        for (const file of syncProduct.files) {
+          const fileUrl = file.url || file.preview_url || file.thumbnail_url
+          if (fileUrl) {
+            printFiles.push({
+              url: fileUrl,
+              type: file.type || 'default'
+            })
+          }
+        }
+      }
+    }
+    
     console.log(`📎 Found ${printFiles.length} print file(s) for variant ${variantId}`)
+    if (printFiles.length === 0) {
+      console.warn(`⚠️ No print files found in store product ${storeProductId} for variant ${variantId}`)
+      console.warn(`⚠️ Store product structure:`, {
+        hasFiles: !!storeProduct.files,
+        hasSyncProduct: !!storeProduct.sync_product,
+        hasSyncVariants: !!storeProduct.sync_variants,
+        syncVariantsCount: storeProduct.sync_variants?.length || 0,
+      })
+    }
     return printFiles
   } catch (error) {
     console.error(`❌ Error fetching print files for variant ${variantId}:`, error)
