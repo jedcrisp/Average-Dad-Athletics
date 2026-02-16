@@ -192,14 +192,15 @@ export async function POST(request: NextRequest) {
           // Add print files if available
           if (printFiles.length > 0) {
             itemData.files = printFiles
-            console.log(`✅ Added ${printFiles.length} print file(s) to variant ${variantId}`)
+            console.log(`✅ Added ${printFiles.length} print file(s) to variant ${printfulVariantId}`)
           } else {
-            console.warn(`⚠️ No print files found for variant ${variantId}`)
-            console.warn(`⚠️ Product ID used: ${productId}, Variant ID: ${variantId}`)
+            console.warn(`⚠️ No print files found for variant ${printfulVariantId}`)
+            console.warn(`⚠️ Product ID used: ${productId}, Variant ID: ${printfulVariantId} (type: ${typeof printfulVariantId})`)
             // Printful requires print files - if we don't have them, we can't create the order
             // But we'll still try and let Printful reject it with a clear error
           }
           
+          console.log(`📦 Printful item data:`, JSON.stringify(itemData, null, 2))
           return itemData
         }))
 

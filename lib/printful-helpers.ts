@@ -539,6 +539,7 @@ export async function createPrintfulOrder(orderData: {
       console.error('❌ Printful order creation failed:', fullErrorMessage)
       console.error('❌ Full error response:', JSON.stringify(errorData, null, 2))
       console.error('❌ Error details:', JSON.stringify(errorDetails, null, 2))
+      console.error('❌ Request payload that failed:', JSON.stringify(payload, null, 2))
       
       // Create error with full details
       const error = new Error(fullErrorMessage) as any
