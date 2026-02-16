@@ -38,7 +38,22 @@ export async function POST(request: NextRequest) {
       const session = event.data.object as any
       const sessionId = session.id
       
+      // Sanitize external_id for Printful (must be alphanumeric, underscore, or hyphen, max length)
+      // Prefer payment_intent ID if available (shorter), otherwise sanitize session ID
+      let safeExternalId: string
+      if (session.payment_intent) {
+        // Use payment_intent ID, remove "pi_" prefix if present, keep only alphanumeric/underscore/hyphen
+        const paymentIntentId = typeof session.payment_intent === 'string' 
+          ? session.payment_intent.replace(/^pi_/, '') 
+          : String(session.payment_intent)
+        safeExternalId = `pi_${paymentIntentId.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 30)}`
+      } else {
+        // Fallback: sanitize session ID
+        safeExternalId = `stripe_${sessionId.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 32)}`
+      }
+      
       console.log('🛒 Processing checkout.session.completed for session:', sessionId)
+      console.log('🔑 Sanitized external_id for Printful:', safeExternalId)
       console.log('📦 Session data:', JSON.stringify({
         id: sessionId,
         amount_total: session.amount_total,
@@ -196,7 +211,7 @@ export async function POST(request: NextRequest) {
             shipping: ((session.shipping_cost?.amount_total || 0) / 100).toFixed(2),
             tax: ((session.total_details?.amount_tax || 0) / 100).toFixed(2),
           },
-          external_id: sessionId, // Use Stripe session ID as external_id (no prefix needed)
+          external_id: safeExternalId, // Sanitized external_id for Printful
         }
 
         console.log('📦 Creating Printful order with data:')
@@ -217,9 +232,9 @@ export async function POST(request: NextRequest) {
           try {
             const orderRef = adminDb.collection('orders').doc(sessionId)
             await orderRef.set({
-              stripeSessionId: sessionId,
+              stripeSessionId: sessionId, // Original Stripe session ID
               printfulOrderId: printfulOrderId,
-              printfulExternalId: printfulOrder.external_id || sessionId,
+              printfulExternalId: safeExternalId, // Sanitized external_id sent to Printful
               customerEmail: customerEmail,
               amountTotal: session.amount_total ? (session.amount_total / 100) : 0,
               currency: session.currency || 'USD',
