@@ -374,7 +374,13 @@ export async function getPrintFilesForVariant(storeProductId: string, variantId:
     })
 
     if (!response.ok) {
+      const errorText = await response.text()
       console.warn(`⚠️ Could not fetch store product ${storeProductId} for print files`)
+      console.warn(`⚠️ Response status: ${response.status}, body: ${errorText}`)
+      // If 404, the product ID might be wrong format
+      if (response.status === 404) {
+        console.warn(`⚠️ Product ID ${storeProductId} not found. Make sure it's the sync product ID (alphanumeric like "699204a318b1a7"), not catalog product ID (numeric)`)
+      }
       return []
     }
 
