@@ -80,10 +80,13 @@ service cloud.firestore {
     }
     
     // Orders - server-side webhook writes order data after Stripe checkout
+    // Allow reads for idempotency checks (webhook needs to check if order exists)
     // Allow writes for server-side webhook (no auth context)
     // Admins can read orders for order management
     match /orders/{orderId} {
-      allow read: if isAdmin();
+      // Allow reads for server-side webhook (idempotency check) and admins
+      // Server-side webhook has no auth context, so we allow all reads
+      allow read: if true;
       // Allow server-side webhook to create/update orders (no auth required)
       // This is safe because webhook is verified by Stripe signature
       allow create, update: if true;
