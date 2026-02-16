@@ -130,16 +130,22 @@ export async function POST(request: NextRequest) {
           }
           
           // Get print files for this variant (required by Printful)
+          // productId should be the sync product ID (alphanumeric like "699204a318b1a7")
           const productId = item.productId || ''
           let printFiles: Array<{ url: string; type?: string }> = []
           
           if (productId) {
+            console.log(`📎 Fetching print files for product ${productId}, variant ${variantId}`)
             try {
               printFiles = await getPrintFilesForVariant(productId, variantId)
+              console.log(`📎 Retrieved ${printFiles.length} print file(s) for variant ${variantId}`)
             } catch (fileError) {
               console.warn(`⚠️ Could not fetch print files for variant ${variantId}:`, fileError)
+              console.warn(`⚠️ Product ID used: ${productId} (should be sync product ID like "699204a318b1a7")`)
               // Continue without files - Printful will reject if files are truly required
             }
+          } else {
+            console.warn(`⚠️ No product ID provided for variant ${variantId}`)
           }
           
           const itemData: any = {
