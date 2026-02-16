@@ -2,15 +2,20 @@
 
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
-import { useRouter } from 'next/navigation'
+import { useRouter, useParams } from 'next/navigation'
 import { workoutHelpers, Workout } from '@/lib/firebase-helpers'
 import { isAdmin } from '@/lib/admin-helpers'
+import { PlusIcon, TrashIcon } from '@heroicons/react/24/outline'
 
-export default function AdminWorkoutsPage() {
+export default function EditWorkoutPage() {
   const { user, loading: authLoading } = useAuth()
   const router = useRouter()
+  const params = useParams()
+  const workoutId = params.id as string
+  
   const [userIsAdmin, setUserIsAdmin] = useState(false)
   const [checkingAdmin, setCheckingAdmin] = useState(true)
+  const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState('')
@@ -29,27 +34,7 @@ export default function AdminWorkoutsPage() {
   const [competitionMetric, setCompetitionMetric] = useState('')
   const [competitionUnit, setCompetitionUnit] = useState('')
   const [competitionSort, setCompetitionSort] = useState<'asc' | 'desc'>('desc')
-  // Development bypass - only in local dev
   const [devBypass, setDevBypass] = useState(false)
-  
-  // Auto-update status based on date selection
-  useEffect(() => {
-    const selectedDate = new Date(date)
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    selectedDate.setHours(0, 0, 0, 0)
-    
-    if (selectedDate > today) {
-      // Future date - set to scheduled
-      setStatus('scheduled')
-    } else if (selectedDate.getTime() === today.getTime()) {
-      // Today - set to active
-      setStatus('active')
-    } else {
-      // Past date - set to active (can be changed to completed if needed)
-      setStatus('active')
-    }
-  }, [date])
 
   useEffect(() => {
     const checkAdmin = async () => {
@@ -63,13 +48,97 @@ export default function AdminWorkoutsPage() {
           setCheckingAdmin(false)
         }
       } else if (!authLoading && !user) {
-        router.push('/login?redirect=/admin/workouts')
+        router.push(`/login?redirect=/admin/workouts/${workoutId}`)
         setCheckingAdmin(false)
       }
     }
-
     checkAdmin()
-  }, [user, authLoading, router])
+  }, [user, authLoading, router, workoutId])
+
+  // Load workout data
+  useEffect(() => {
+    const loadWorkout = async () => {
+      if (!workoutId || !userIsAdmin) return
+      
+      try {
+        setLoading(true)
+        const workout = await workoutHelpers.getById(workoutId)
+        if (!workout) {
+          setError('Workout not found')
+          return
+        }
+
+        // Populate form with workout data
+        setTitle(workout.title || '')
+        setDate(workout.date || new Date().toISOString().split('T')[0])
+        setDuration(workout.duration || '45 min')
+        setDescription(workout.description || '')
+        setStatus(workout.status || 'active')
+        
+        // Parse exercises back into form format
+        if (workout.exercises && workout.exercises.length > 0) {
+          const parsedExercises = workout.exercises.map(ex => {
+            // Try to parse "Movement - Weightlbs - Time" format
+            const parts = ex.split(' - ')
+            if (parts.length >= 3) {
+              return {
+                movement: parts[0].trim(),
+                weight: parts[1].replace('lbs', '').trim(),
+                time: parts[2].trim()
+              }
+            } else if (parts.length === 2) {
+              return {
+                movement: parts[0].trim(),
+                weight: parts[1].replace('lbs', '').trim(),
+                time: ''
+              }
+            } else {
+              return {
+                movement: ex.trim(),
+                weight: '',
+                time: ''
+              }
+            }
+          })
+          setExercises(parsedExercises)
+        }
+
+        // Competition fields
+        if (workout.competitionType && workout.competitionType !== 'none') {
+          setHasCompetition(true)
+          setCompetitionType(workout.competitionType)
+          setCompetitionMetric(workout.competitionMetric || '')
+          setCompetitionUnit(workout.competitionUnit || '')
+          setCompetitionSort(workout.competitionSort || 'desc')
+        }
+      } catch (err: any) {
+        console.error('Error loading workout:', err)
+        setError('Failed to load workout')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    if (userIsAdmin) {
+      loadWorkout()
+    }
+  }, [workoutId, userIsAdmin])
+
+  // Auto-update status based on date selection
+  useEffect(() => {
+    const selectedDate = new Date(date)
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    selectedDate.setHours(0, 0, 0, 0)
+    
+    if (selectedDate > today) {
+      setStatus('scheduled')
+    } else if (selectedDate.getTime() === today.getTime()) {
+      setStatus('active')
+    } else {
+      setStatus('active')
+    }
+  }, [date])
 
   const addExercise = () => {
     setExercises([...exercises, { movement: '', weight: '', time: '' }])
@@ -87,7 +156,6 @@ export default function AdminWorkoutsPage() {
     }
   }
 
-  // Format exercise for storage (combines movement, weight, time into a string)
   const formatExercise = (exercise: {movement: string, weight: string, time: string}): string => {
     const parts: string[] = []
     if (exercise.movement.trim()) parts.push(exercise.movement.trim())
@@ -111,10 +179,9 @@ export default function AdminWorkoutsPage() {
       const workoutData: any = {
         title: title.trim(),
         date,
-        status, // Include status (scheduled, active, or completed)
+        status,
       }
       
-      // Optional fields - only include if they have values
       if (duration.trim()) {
         workoutData.duration = duration.trim()
       }
@@ -125,7 +192,6 @@ export default function AdminWorkoutsPage() {
         workoutData.description = description.trim()
       }
       
-      // Competition fields - only include if competition is enabled
       if (hasCompetition) {
         workoutData.competitionType = competitionType
         if (competitionMetric.trim()) {
@@ -139,23 +205,22 @@ export default function AdminWorkoutsPage() {
         workoutData.competitionType = 'none'
       }
 
-      await workoutHelpers.create(workoutData)
+      await workoutHelpers.update(workoutId, workoutData)
       
       setSuccess(true)
       
-      // Redirect to workouts page after 2 seconds
       setTimeout(() => {
-        router.push('/workouts')
-      }, 2000)
+        router.push(`/workouts/${workoutId}`)
+      }, 1500)
     } catch (err: any) {
-      console.error('Error creating workout:', err)
-      setError(err.message || 'Failed to create workout. Please try again.')
+      console.error('Error updating workout:', err)
+      setError(err.message || 'Failed to update workout. Please try again.')
     } finally {
       setSubmitting(false)
     }
   }
 
-  if (checkingAdmin || authLoading) {
+  if (checkingAdmin || authLoading || loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -166,8 +231,7 @@ export default function AdminWorkoutsPage() {
     )
   }
 
-  // Check if we're in development (client-side only)
-  const isDevelopment = typeof window !== 'undefined' && 
+  const isDevelopment = typeof window !== 'undefined' &&
     (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
 
   if (!userIsAdmin && !devBypass) {
@@ -205,15 +269,15 @@ export default function AdminWorkoutsPage() {
       <div className="max-w-4xl mx-auto">
         <div className="mb-6">
           <a
-            href="/workouts"
+            href={`/workouts/${workoutId}`}
             className="text-primary-600 hover:text-primary-700 font-medium"
           >
-            ← Back to Workouts
+            ← Back to Workout
           </a>
         </div>
 
         <div className="bg-white rounded-lg shadow-md p-6 md:p-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-6">Create New Workout</h1>
+          <h1 className="text-3xl font-bold text-gray-900 mb-6">Edit Workout</h1>
 
           {/* Disclaimer Notice */}
           <div className="mb-6 p-4 bg-yellow-50 border-l-4 border-yellow-400 rounded">
@@ -227,7 +291,7 @@ export default function AdminWorkoutsPage() {
 
           {success && (
             <div className="mb-6 p-4 bg-green-50 border border-green-200 text-green-700 rounded-lg">
-              Workout created successfully! It will appear on the workouts page.
+              Workout updated successfully! Redirecting...
             </div>
           )}
 
@@ -295,20 +359,20 @@ export default function AdminWorkoutsPage() {
                     {status === 'completed' && 'Workout has been completed'}
                   </p>
                 </div>
+              </div>
 
-                <div>
-                  <label htmlFor="duration" className="block text-sm font-medium text-gray-700 mb-2">
-                    Duration
-                  </label>
-                  <input
-                    type="text"
-                    id="duration"
-                    value={duration}
-                    onChange={(e) => setDuration(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                    placeholder="e.g., 45 min"
-                  />
-                </div>
+              <div>
+                <label htmlFor="duration" className="block text-sm font-medium text-gray-700 mb-2">
+                  Duration
+                </label>
+                <input
+                  type="text"
+                  id="duration"
+                  value={duration}
+                  onChange={(e) => setDuration(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                  placeholder="e.g., 45 min"
+                />
               </div>
 
               <div>
@@ -319,7 +383,7 @@ export default function AdminWorkoutsPage() {
                   id="description"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  rows={3}
+                  rows={4}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                   placeholder="Describe the workout..."
                 />
@@ -333,63 +397,71 @@ export default function AdminWorkoutsPage() {
                 <button
                   type="button"
                   onClick={addExercise}
-                  className="text-sm text-primary-600 hover:text-primary-700 font-medium"
+                  className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
                 >
-                  + Add Exercise
+                  <PlusIcon className="w-4 h-4" />
+                  Add Exercise
                 </button>
               </div>
 
               {exercises.map((exercise, index) => (
-                <div key={index} className="space-y-2">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-                    <div>
-                      <label className="block text-xs text-gray-500 mb-1">Movement *</label>
-                      <input
-                        type="text"
-                        value={exercise.movement}
-                        onChange={(e) => updateExercise(index, 'movement', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"
-                        placeholder="e.g., Deadlift"
-                        required={index === 0}
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs text-gray-500 mb-1">Weight (lbs)</label>
-                      <input
-                        type="text"
-                        value={exercise.weight}
-                        onChange={(e) => updateExercise(index, 'weight', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"
-                        placeholder="e.g., 225"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs text-gray-500 mb-1">Time / Sets</label>
-                      <input
-                        type="text"
-                        value={exercise.time}
-                        onChange={(e) => updateExercise(index, 'time', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"
-                        placeholder="e.g., 5 sets or 30 min"
-                      />
-                    </div>
+                <div key={index} className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 bg-gray-50 rounded-lg">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Movement
+                    </label>
+                    <input
+                      type="text"
+                      value={exercise.movement}
+                      onChange={(e) => updateExercise(index, 'movement', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                      placeholder="e.g., Deadlift"
+                    />
                   </div>
-                  {exercises.length > 1 && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Weight (lbs)
+                    </label>
+                    <input
+                      type="text"
+                      value={exercise.weight}
+                      onChange={(e) => updateExercise(index, 'weight', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                      placeholder="e.g., 225"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Time/Reps
+                    </label>
+                    <input
+                      type="text"
+                      value={exercise.time}
+                      onChange={(e) => updateExercise(index, 'time', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                      placeholder="e.g., 5x5"
+                    />
+                  </div>
+                  <div className="flex items-end">
                     <button
                       type="button"
                       onClick={() => removeExercise(index)}
-                      className="text-sm text-red-600 hover:text-red-700 font-medium"
+                      disabled={exercises.length === 1}
+                      className="w-full px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                     >
-                      Remove Exercise
+                      <TrashIcon className="w-4 h-4" />
+                      Remove
                     </button>
-                  )}
+                  </div>
                 </div>
               ))}
             </div>
 
-            {/* Competition Settings */}
-            <div className="space-y-4 border-t pt-6">
-              <div className="flex items-center">
+            {/* Competition */}
+            <div className="space-y-4">
+              <h2 className="text-xl font-semibold text-gray-900">Competition (Optional)</h2>
+              
+              <div className="flex items-center gap-2">
                 <input
                   type="checkbox"
                   id="hasCompetition"
@@ -397,13 +469,13 @@ export default function AdminWorkoutsPage() {
                   onChange={(e) => setHasCompetition(e.target.checked)}
                   className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
                 />
-                <label htmlFor="hasCompetition" className="ml-2 text-sm font-medium text-gray-700">
-                  Enable Competition/Leaderboard
+                <label htmlFor="hasCompetition" className="text-sm font-medium text-gray-700">
+                  Enable competition/leaderboard for this workout
                 </label>
               </div>
 
               {hasCompetition && (
-                <div className="ml-6 space-y-4 bg-gray-50 p-4 rounded-lg">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
                   <div>
                     <label htmlFor="competitionType" className="block text-sm font-medium text-gray-700 mb-2">
                       Competition Type *
@@ -414,7 +486,6 @@ export default function AdminWorkoutsPage() {
                       onChange={(e) => {
                         const type = e.target.value as 'time' | 'weight' | 'reps' | 'distance'
                         setCompetitionType(type)
-                        // Set defaults based on type
                         if (type === 'time') {
                           setCompetitionMetric('Fastest Time')
                           setCompetitionUnit('seconds')
@@ -460,7 +531,7 @@ export default function AdminWorkoutsPage() {
 
                   <div>
                     <label htmlFor="competitionUnit" className="block text-sm font-medium text-gray-700 mb-2">
-                      Unit of Measurement *
+                      Unit *
                     </label>
                     <input
                       type="text"
@@ -469,8 +540,24 @@ export default function AdminWorkoutsPage() {
                       onChange={(e) => setCompetitionUnit(e.target.value)}
                       required={hasCompetition}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                      placeholder="e.g., seconds, lbs, reps, miles"
+                      placeholder="e.g., seconds, lbs, reps"
                     />
+                  </div>
+
+                  <div>
+                    <label htmlFor="competitionSort" className="block text-sm font-medium text-gray-700 mb-2">
+                      Sort Order *
+                    </label>
+                    <select
+                      id="competitionSort"
+                      value={competitionSort}
+                      onChange={(e) => setCompetitionSort(e.target.value as 'asc' | 'desc')}
+                      required
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                    >
+                      <option value="asc">Ascending (Lower is better - e.g., time)</option>
+                      <option value="desc">Descending (Higher is better - e.g., weight, reps)</option>
+                    </select>
                   </div>
                 </div>
               )}
@@ -481,16 +568,17 @@ export default function AdminWorkoutsPage() {
               <button
                 type="submit"
                 disabled={submitting}
-                className="flex-1 bg-primary-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 px-6 py-3 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {submitting ? 'Creating...' : 'Create Workout'}
+                {submitting ? 'Updating...' : 'Update Workout'}
               </button>
-              <a
-                href="/workouts"
-                className="px-6 py-3 border border-gray-300 rounded-lg font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
+              <button
+                type="button"
+                onClick={() => router.push(`/workouts/${workoutId}`)}
+                className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 transition-colors"
               >
                 Cancel
-              </a>
+              </button>
             </div>
           </form>
         </div>

@@ -4,9 +4,23 @@ import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { workoutHelpers, Workout } from '@/lib/firebase-helpers'
-import { CalendarIcon, ClockIcon, FireIcon } from '@heroicons/react/24/outline'
+import { isAdmin } from '@/lib/admin-helpers'
+import { CalendarIcon, ClockIcon, FireIcon, PencilIcon } from '@heroicons/react/24/outline'
 import WorkoutLeaderboard from '@/components/WorkoutLeaderboard'
 import WorkoutSubmissionForm from '@/components/WorkoutSubmissionForm'
+import Link from 'next/link'
+
+// Helper function to format date string as local date (prevents timezone shift)
+function formatWorkoutDate(dateString: string): string {
+  // Parse date string (YYYY-MM-DD) as local date, not UTC
+  const [year, month, day] = dateString.split('-').map(Number)
+  const date = new Date(year, month - 1, day) // month is 0-indexed
+  return date.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  })
+}
 
 export default function WorkoutDetailPage() {
   const params = useParams()
@@ -15,6 +29,7 @@ export default function WorkoutDetailPage() {
   const [workout, setWorkout] = useState<Workout | null>(null)
   const [loading, setLoading] = useState(true)
   const [refreshKey, setRefreshKey] = useState(0)
+  const [userIsAdmin, setUserIsAdmin] = useState(false)
 
   useEffect(() => {
     const fetchWorkout = async () => {
@@ -38,6 +53,21 @@ export default function WorkoutDetailPage() {
 
     fetchWorkout()
   }, [params.id, router])
+
+  // Check if user is admin
+  useEffect(() => {
+    const checkAdmin = async () => {
+      if (user) {
+        try {
+          const adminStatus = await isAdmin(user)
+          setUserIsAdmin(adminStatus)
+        } catch (error) {
+          console.error('Error checking admin status:', error)
+        }
+      }
+    }
+    checkAdmin()
+  }, [user])
 
   const handleSubmissionSuccess = () => {
     setRefreshKey(prev => prev + 1)
@@ -69,18 +99,25 @@ export default function WorkoutDetailPage() {
         </button>
 
         <div className="bg-white rounded-lg shadow-md p-6 md:p-8 mb-6">
-          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">{workout.title}</h1>
+          <div className="flex items-start justify-between mb-4">
+            <h1 className="text-3xl md:text-4xl font-bold text-gray-900">{workout.title}</h1>
+            {userIsAdmin && (
+              <Link
+                href={`/admin/workouts/${workout.id}`}
+                className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+              >
+                <PencilIcon className="w-4 h-4" />
+                Edit
+              </Link>
+            )}
+          </div>
           
           <p className="text-gray-600 mb-6 text-lg">{workout.description}</p>
 
           <div className="flex items-center gap-6 text-sm text-gray-500 mb-6">
             <div className="flex items-center gap-2">
               <CalendarIcon className="w-5 h-5" />
-              {new Date(workout.date).toLocaleDateString('en-US', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-              })}
+              {formatWorkoutDate(workout.date)}
             </div>
             <div className="flex items-center gap-2">
               <ClockIcon className="w-5 h-5" />
@@ -111,6 +148,13 @@ export default function WorkoutDetailPage() {
                 </li>
               ))}
             </ul>
+          </div>
+
+          {/* Disclaimer */}
+          <div className="mt-6 pt-6 border-t">
+            <p className="text-sm text-gray-600 italic">
+              <strong>Disclaimer:</strong> This program is for guidance only. Exercise at your own risk and train at your ability.
+            </p>
           </div>
         </div>
 

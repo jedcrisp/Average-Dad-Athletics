@@ -5,6 +5,29 @@ import Link from 'next/link'
 import { CalendarIcon, ClockIcon, FireIcon } from '@heroicons/react/24/outline'
 import { workoutHelpers, Workout } from '@/lib/firebase-helpers'
 
+// Helper function to format date string as local date (prevents timezone shift)
+function formatWorkoutDate(dateString: string): string {
+  // Parse date string (YYYY-MM-DD) as local date, not UTC
+  const [year, month, day] = dateString.split('-').map(Number)
+  const date = new Date(year, month - 1, day) // month is 0-indexed
+  return date.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  })
+}
+
+// Helper function for short date format
+function formatWorkoutDateShort(dateString: string): string {
+  const [year, month, day] = dateString.split('-').map(Number)
+  const date = new Date(year, month - 1, day)
+  return date.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric'
+  })
+}
+
 export default function WorkoutsPage() {
   const [workouts, setWorkouts] = useState<Workout[]>([])
   const [loading, setLoading] = useState(true)
@@ -105,7 +128,7 @@ export default function WorkoutsPage() {
                       <div className="flex items-center gap-4 text-sm text-gray-500 mb-4">
                         <div className="flex items-center gap-1">
                           <CalendarIcon className="w-4 h-4" />
-                          {new Date(workout.date).toLocaleDateString()}
+                          {formatWorkoutDateShort(workout.date)}
                         </div>
                         {workout.duration && (
                           <div className="flex items-center gap-1">
@@ -135,6 +158,12 @@ export default function WorkoutsPage() {
                           </ul>
                         </div>
                       )}
+                      {/* Disclaimer */}
+                      <div className="mt-4 pt-4 border-t">
+                        <p className="text-xs text-gray-500 italic">
+                          <strong>Disclaimer:</strong> This program is for guidance only. Exercise at your own risk and train at your ability.
+                        </p>
+                      </div>
                     </Link>
                   ))}
                 </div>
@@ -166,7 +195,7 @@ export default function WorkoutsPage() {
                       <div className="flex items-center gap-4 text-sm text-gray-500 mb-4">
                         <div className="flex items-center gap-1">
                           <CalendarIcon className="w-4 h-4" />
-                          {new Date(workout.date).toLocaleDateString()}
+                          {formatWorkoutDateShort(workout.date)}
                         </div>
                         {workout.duration && (
                           <div className="flex items-center gap-1">
@@ -198,6 +227,12 @@ export default function WorkoutsPage() {
                           </span>
                         </div>
                       )}
+                      {/* Disclaimer */}
+                      <div className="mt-4 pt-4 border-t">
+                        <p className="text-xs text-gray-500 italic">
+                          <strong>Disclaimer:</strong> This program is for guidance only. Exercise at your own risk and train at your ability.
+                        </p>
+                      </div>
                     </Link>
                   ))}
                 </div>
