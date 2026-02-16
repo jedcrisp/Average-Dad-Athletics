@@ -212,6 +212,7 @@ export async function POST(request: NextRequest) {
             tax: ((session.total_details?.amount_tax || 0) / 100).toFixed(2),
           },
           external_id: safeExternalId, // Sanitized external_id for Printful
+          confirm: true, // Auto-confirm order (skip draft status)
         }
 
         console.log('📦 Creating Printful order with data:')

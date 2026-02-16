@@ -487,6 +487,7 @@ export async function createPrintfulOrder(orderData: {
     tax: string
   }
   external_id?: string
+  confirm?: boolean // Auto-confirm order (skip draft status)
 }): Promise<any> {
   const apiKey = getPrintfulApiKey()
   
@@ -504,8 +505,14 @@ export async function createPrintfulOrder(orderData: {
       payload.external_id = orderData.external_id
     }
     
+    // Add confirm flag to auto-confirm order (skip draft status)
+    if (orderData.confirm !== false) {
+      payload.confirm = true
+    }
+    
     console.log('📦 Creating Printful order with payload:', JSON.stringify(payload, null, 2))
     console.log('📦 Using endpoint: /orders')
+    console.log('📦 Auto-confirm:', payload.confirm ? 'enabled' : 'disabled')
     
     // Try /orders endpoint first (standard Printful API endpoint)
     // If this fails with 404, we might need /store/orders
@@ -551,8 +558,42 @@ export async function createPrintfulOrder(orderData: {
     }
 
     const data = JSON.parse(responseText)
-    console.log('✅ Printful order created successfully:', data.result?.id || data.result?.external_id)
-    return data.result
+    const order = data.result
+    const orderId = order?.id || order?.external_id
+    
+    console.log('✅ Printful order created successfully:', orderId)
+    console.log('📊 Order status:', order?.status || 'unknown')
+    
+    // If order was created but is still in draft status, confirm it explicitly
+    // This handles cases where the API doesn't accept confirm in the payload
+    if (order && order.status === 'draft' && orderData.confirm !== false) {
+      console.log('🔄 Order is in draft status, attempting to confirm...')
+      try {
+        const confirmResponse = await fetch(`${PRINTFUL_API_BASE}/orders/${orderId}/confirm`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Type': 'application/json',
+          },
+        })
+        
+        if (confirmResponse.ok) {
+          const confirmData = await confirmResponse.json()
+          console.log('✅ Order confirmed successfully')
+          console.log('📊 Updated order status:', confirmData.result?.status || 'unknown')
+          return confirmData.result || order
+        } else {
+          const confirmErrorText = await confirmResponse.text()
+          console.warn('⚠️ Could not confirm order (non-fatal):', confirmResponse.status, confirmErrorText)
+          // Continue with the order as-is (it's created, just in draft)
+        }
+      } catch (confirmError) {
+        console.warn('⚠️ Error confirming order (non-fatal):', confirmError)
+        // Continue with the order as-is (it's created, just in draft)
+      }
+    }
+    
+    return order
   } catch (error) {
     console.error('❌ Error creating Printful order:', error)
     throw error
