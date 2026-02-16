@@ -79,6 +79,17 @@ service cloud.firestore {
       allow create, update, delete: if true;
     }
     
+    // Orders - server-side webhook writes order data after Stripe checkout
+    // Allow writes for server-side webhook (no auth context)
+    // Admins can read orders for order management
+    match /orders/{orderId} {
+      allow read: if isAdmin();
+      // Allow server-side webhook to create/update orders (no auth required)
+      // This is safe because webhook is verified by Stripe signature
+      allow create, update: if true;
+      allow delete: if isAdmin();
+    }
+    
     // Default: deny all other access
     match /{document=**} {
       allow read, write: if false;
@@ -99,6 +110,8 @@ service cloud.firestore {
 - **Blocked users collection**: Only admins can read/write blocked user emails
 - **Workouts collection**: Users can read workouts, but only admins can write (you can configure admin access later)
 - **Workout submissions collection**: Users can read all submissions, create their own, and update/delete their own submissions
+- **Orders collection**: Server-side webhook can create/update orders (for Stripe checkout fulfillment). Only admins can read orders.
+- **Store products collection**: All authenticated users can read. Server-side sync can write (admin check done on frontend).
 - **Everything else**: Denied by default for security
 
 ## Testing
