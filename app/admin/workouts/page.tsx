@@ -18,7 +18,7 @@ export default function AdminWorkoutsPage() {
   // Form state
   const [title, setTitle] = useState('')
   const [date, setDate] = useState(new Date().toISOString().split('T')[0])
-  const [duration, setDuration] = useState('45 min')
+  const [duration, setDuration] = useState('')
   const [exercises, setExercises] = useState<Array<{movement: string, weight: string, time: string}>>([
     { movement: '', weight: '', time: '' }
   ])
