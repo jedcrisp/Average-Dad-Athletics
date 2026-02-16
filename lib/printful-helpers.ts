@@ -472,7 +472,8 @@ export async function createPrintfulOrder(orderData: {
     email: string
   }
   items: Array<{
-    variant_id: number | string // Can be numeric (catalog) or alphanumeric string (sync variant like "699204a318b1a7")
+    sync_variant_id?: string // Sync variant ID (alphanumeric string like "699204a318b1a7") - for synced products
+    variant_id?: number // Catalog variant ID (numeric) - for catalog products
     quantity: number
     files?: Array<{
       url: string

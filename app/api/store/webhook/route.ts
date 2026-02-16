@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyWebhookSignature, stripe } from '@/lib/stripe-helpers'
-import { createPrintfulOrder, getPrintFilesForVariant } from '@/lib/printful-helpers'
-import { doc, getDoc, setDoc, Timestamp } from 'firebase/firestore'
-import { db } from '@/lib/firebase'
+import { createPrintfulOrder } from '@/lib/printful-helpers'
+import { adminDb } from '@/lib/firebase-admin'
+import { FieldValue } from 'firebase-admin/firestore'
 
 // Stripe webhook endpoint
 // This handles successful payments and creates Printful orders
@@ -50,18 +50,18 @@ export async function POST(request: NextRequest) {
 
       // Check for idempotency - has this order already been processed?
       let existingOrder = null
-      if (db) {
+      if (adminDb) {
         try {
-          const orderRef = doc(db, 'orders', sessionId)
-          existingOrder = await getDoc(orderRef)
-          if (existingOrder.exists()) {
-            const existingData = existingOrder.data()
-            console.log('⚠️ Order already processed. Printful order ID:', existingData.printfulOrderId)
+          const orderRef = adminDb.collection('orders').doc(sessionId)
+          const orderDoc = await orderRef.get()
+          if (orderDoc.exists) {
+            const existingData = orderDoc.data()
+            console.log('⚠️ Order already processed. Printful order ID:', existingData?.printfulOrderId)
             console.log('⚠️ Skipping duplicate order creation for session:', sessionId)
             return NextResponse.json({ 
               received: true, 
               message: 'Order already processed',
-              printfulOrderId: existingData.printfulOrderId 
+              printfulOrderId: existingData?.printfulOrderId 
             })
           }
         } catch (firestoreError) {
@@ -133,76 +133,48 @@ export async function POST(request: NextRequest) {
 
         // Create order in Printful
       try {
-        // Validate variant IDs and fetch print files for each item
-        const printfulItems = await Promise.all(items.map(async (item: any) => {
-          // Use sync_variant_id if available (required for sync products)
-          // Otherwise fall back to variantId (for catalog products)
+        // Build Printful order items
+        const printfulItems = items.map((item: any) => {
+          // Extract variant IDs from metadata
           const syncVariantId = item.syncVariantId || item.sync_variant_id
           const catalogVariantId = item.catalogVariantId || item.catalog_variant_id
           const variantId = item.variantId
           
-          // For sync products, we need the sync_variant_id (alphanumeric)
-          // For catalog products, we use the numeric variant_id
-          let printfulVariantId: string | number
-          
-          if (syncVariantId) {
-            // Use sync variant ID (alphanumeric string like "699204a318b1a7")
-            printfulVariantId = syncVariantId
-            console.log(`✅ Using sync_variant_id: ${syncVariantId} for product ${item.productName || 'unknown'}`)
-          } else if (catalogVariantId) {
-            // Fallback to catalog variant ID (numeric)
-            printfulVariantId = parseInt(catalogVariantId)
-            console.log(`⚠️ No sync_variant_id, using catalog_variant_id: ${catalogVariantId}`)
-          } else {
-            // Last resort: try to parse variantId
-            const parsedId = typeof variantId === 'string' ? variantId : parseInt(variantId)
-            if (isNaN(parsedId as any) || (typeof parsedId === 'number' && parsedId <= 0)) {
-              throw new Error(`Invalid variant ID: ${variantId} for product ${item.productName || 'unknown'}. Need sync_variant_id for sync products.`)
-            }
-            printfulVariantId = parsedId
-            console.log(`⚠️ No sync_variant_id or catalog_variant_id, using variantId: ${variantId}`)
-          }
-          
-          // Get print files for this variant (required by Printful)
-          // productId should be the sync product ID (alphanumeric like "699204a318b1a7")
-          const productId = item.productId || ''
-          let printFiles: Array<{ url: string; type?: string }> = []
-          
-          if (productId) {
-            // For print files, we can use either sync variant ID or catalog variant ID
-            const fileVariantId = typeof printfulVariantId === 'string' ? parseInt(catalogVariantId || '0') : printfulVariantId
-            console.log(`📎 Fetching print files for product ${productId}, variant ${fileVariantId}`)
-            try {
-              printFiles = await getPrintFilesForVariant(productId, fileVariantId)
-              console.log(`📎 Retrieved ${printFiles.length} print file(s) for variant ${fileVariantId}`)
-            } catch (fileError) {
-              console.warn(`⚠️ Could not fetch print files for variant ${fileVariantId}:`, fileError)
-              console.warn(`⚠️ Product ID used: ${productId} (should be sync product ID like "699204a318b1a7")`)
-              // Continue without files - Printful will reject if files are truly required
-            }
-          } else {
-            console.warn(`⚠️ No product ID provided for variant ${printfulVariantId}`)
-          }
-          
+          // Build item data - use sync_variant_id (string) if available, otherwise variant_id (number)
           const itemData: any = {
-            variant_id: printfulVariantId, // Use sync_variant_id if available, otherwise catalog variant_id
             quantity: parseInt(item.quantity) || 1,
           }
           
-          // Add print files if available
-          if (printFiles.length > 0) {
-            itemData.files = printFiles
-            console.log(`✅ Added ${printFiles.length} print file(s) to variant ${printfulVariantId}`)
+          if (syncVariantId) {
+            // For sync products: use sync_variant_id (string, alphanumeric like "699204a318b1a7")
+            // DO NOT attach files - synced products already have artwork attached
+            itemData.sync_variant_id = syncVariantId
+            console.log(`✅ Using sync_variant_id: ${syncVariantId} for product ${item.productName || 'unknown'}`)
+            console.log(`✅ Skipping print files (synced products already have artwork)`)
+          } else if (catalogVariantId) {
+            // For catalog products: use variant_id (number)
+            // Catalog products may need print files, but we'll let Printful handle that
+            const numericVariantId = Number(catalogVariantId)
+            if (isNaN(numericVariantId) || numericVariantId <= 0) {
+              throw new Error(`Invalid catalog variant ID: ${catalogVariantId} for product ${item.productName || 'unknown'}`)
+            }
+            itemData.variant_id = numericVariantId
+            console.log(`⚠️ No sync_variant_id, using catalog variant_id: ${numericVariantId}`)
+          } else if (variantId) {
+            // Last resort: try to parse variantId as number
+            const numericVariantId = Number(variantId)
+            if (isNaN(numericVariantId) || numericVariantId <= 0) {
+              throw new Error(`Invalid variant ID: ${variantId} for product ${item.productName || 'unknown'}. Need sync_variant_id for sync products.`)
+            }
+            itemData.variant_id = numericVariantId
+            console.log(`⚠️ No sync_variant_id or catalog_variant_id, using variantId: ${numericVariantId}`)
           } else {
-            console.warn(`⚠️ No print files found for variant ${printfulVariantId}`)
-            console.warn(`⚠️ Product ID used: ${productId}, Variant ID: ${printfulVariantId} (type: ${typeof printfulVariantId})`)
-            // Printful requires print files - if we don't have them, we can't create the order
-            // But we'll still try and let Printful reject it with a clear error
+            throw new Error(`No valid variant ID found for product ${item.productName || 'unknown'}. Need sync_variant_id for sync products or variant_id for catalog products.`)
           }
           
           console.log(`📦 Printful item data:`, JSON.stringify(itemData, null, 2))
           return itemData
-        }))
+        })
 
         const printfulOrderData = {
           recipient: {
@@ -241,13 +213,13 @@ export async function POST(request: NextRequest) {
         console.log('📧 Customer email:', customerEmail)
 
         // Save order to Firestore for tracking and idempotency
-        if (db) {
+        if (adminDb) {
           try {
-            const orderRef = doc(db, 'orders', sessionId)
-            await setDoc(orderRef, {
+            const orderRef = adminDb.collection('orders').doc(sessionId)
+            await orderRef.set({
               stripeSessionId: sessionId,
               printfulOrderId: printfulOrderId,
-              printfulExternalId: printfulOrder.external_id || `stripe_cs_${sessionId}`,
+              printfulExternalId: printfulOrder.external_id || sessionId,
               customerEmail: customerEmail,
               amountTotal: session.amount_total ? (session.amount_total / 100) : 0,
               currency: session.currency || 'USD',
@@ -257,8 +229,8 @@ export async function POST(request: NextRequest) {
               },
               items: items,
               status: 'created',
-              createdAt: Timestamp.now(),
-              updatedAt: Timestamp.now(),
+              createdAt: FieldValue.serverTimestamp(),
+              updatedAt: FieldValue.serverTimestamp(),
             })
             console.log('✅ Order saved to Firestore')
           } catch (firestoreError) {
@@ -294,10 +266,10 @@ export async function POST(request: NextRequest) {
         console.error('❌ Shipping address:', JSON.stringify(shippingAddress, null, 2))
 
         // Save failed order attempt to Firestore for debugging
-        if (db) {
+        if (adminDb) {
           try {
-            const orderRef = doc(db, 'orders', sessionId)
-            await setDoc(orderRef, {
+            const orderRef = adminDb.collection('orders').doc(sessionId)
+            await orderRef.set({
               stripeSessionId: sessionId,
               customerEmail: customerEmail,
               amountTotal: session.amount_total ? (session.amount_total / 100) : 0,
@@ -306,8 +278,8 @@ export async function POST(request: NextRequest) {
               status: 'failed',
               error: printfulError.message || 'Unknown error',
               errorDetails: JSON.stringify(printfulError),
-              createdAt: Timestamp.now(),
-              updatedAt: Timestamp.now(),
+              createdAt: FieldValue.serverTimestamp(),
+              updatedAt: FieldValue.serverTimestamp(),
             }, { merge: true })
           } catch (firestoreError) {
             console.error('⚠️ Failed to save failed order to Firestore:', firestoreError)

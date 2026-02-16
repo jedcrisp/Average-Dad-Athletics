@@ -19,8 +19,8 @@ export interface CartItem {
 interface CartContextType {
   items: CartItem[]
   addItem: (item: CartItem) => void
-  removeItem: (productId: string, variantId: number) => void
-  updateQuantity: (productId: string, variantId: number, quantity: number) => void
+  removeItem: (productId: string, variantId: number | string) => void
+  updateQuantity: (productId: string, variantId: number | string, quantity: number) => void
   clearCart: () => void
   getTotalItems: () => number
   getTotalPrice: () => number
@@ -67,7 +67,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     })
   }
 
-  const removeItem = (productId: string, variantId: number) => {
+  const removeItem = (productId: string, variantId: number | string) => {
     setItems((prevItems) =>
       prevItems.filter(
         (item) => !(item.productId === productId && item.variantId === variantId)
@@ -75,7 +75,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     )
   }
 
-  const updateQuantity = (productId: string, variantId: number, quantity: number) => {
+  const updateQuantity = (productId: string, variantId: number | string, quantity: number) => {
     if (quantity <= 0) {
       removeItem(productId, variantId)
       return
