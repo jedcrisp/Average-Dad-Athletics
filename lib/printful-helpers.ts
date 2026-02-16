@@ -420,16 +420,30 @@ export async function createPrintfulOrder(orderData: {
     console.log('📡 Printful API response body:', responseText)
 
     if (!response.ok) {
-      let errorData
+      let errorData: any
       try {
         errorData = JSON.parse(responseText)
       } catch {
         errorData = { message: responseText }
       }
-      const errorMessage = `Printful API error (${response.status}): ${errorData.message || response.statusText}`
-      console.error('❌ Printful order creation failed:', errorMessage)
-      console.error('❌ Full error response:', errorData)
-      throw new Error(errorMessage)
+      
+      // Extract detailed error information
+      const errorMessage = errorData.message || errorData.error?.message || response.statusText
+      const errorCode = errorData.code || errorData.error?.code
+      const errorDetails = errorData.error || errorData
+      
+      const fullErrorMessage = `Printful API error (${response.status}): ${errorMessage}${errorCode ? ` [Code: ${errorCode}]` : ''}`
+      
+      console.error('❌ Printful order creation failed:', fullErrorMessage)
+      console.error('❌ Full error response:', JSON.stringify(errorData, null, 2))
+      console.error('❌ Error details:', JSON.stringify(errorDetails, null, 2))
+      
+      // Create error with full details
+      const error = new Error(fullErrorMessage) as any
+      error.status = response.status
+      error.response = responseText
+      error.errorData = errorData
+      throw error
     }
 
     const data = JSON.parse(responseText)

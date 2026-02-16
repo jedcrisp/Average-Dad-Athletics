@@ -120,8 +120,20 @@ export async function POST(request: NextRequest) {
         })
       }
 
-      // Create order in Printful
+        // Create order in Printful
       try {
+        // Validate variant IDs are numbers
+        const printfulItems = items.map((item: any) => {
+          const variantId = parseInt(item.variantId)
+          if (isNaN(variantId) || variantId <= 0) {
+            throw new Error(`Invalid variant ID: ${item.variantId} for product ${item.productName || 'unknown'}`)
+          }
+          return {
+            variant_id: variantId,
+            quantity: parseInt(item.quantity) || 1,
+          }
+        })
+
         const printfulOrderData = {
           recipient: {
             name: recipientName,
@@ -134,10 +146,7 @@ export async function POST(request: NextRequest) {
             phone: session.customer_details?.phone || '',
             email: customerEmail,
           },
-          items: items.map((item: any) => ({
-            variant_id: item.variantId,
-            quantity: item.quantity,
-          })),
+          items: printfulItems,
           retail_costs: {
             currency: (session.currency || 'USD').toUpperCase(),
             subtotal: ((session.amount_subtotal || 0) / 100).toFixed(2),
@@ -148,7 +157,11 @@ export async function POST(request: NextRequest) {
           external_id: `stripe_cs_${sessionId}`, // Use Stripe session ID as external_id
         }
 
-        console.log('📦 Creating Printful order...')
+        console.log('📦 Creating Printful order with data:')
+        console.log('📦 Recipient:', JSON.stringify(printfulOrderData.recipient, null, 2))
+        console.log('📦 Items:', JSON.stringify(printfulOrderData.items, null, 2))
+        console.log('📦 Retail costs:', JSON.stringify(printfulOrderData.retail_costs, null, 2))
+        console.log('📦 External ID:', printfulOrderData.external_id)
         const printfulOrder = await createPrintfulOrder(printfulOrderData)
 
         const printfulOrderId = printfulOrder.id || printfulOrder.external_id || 'unknown'
@@ -191,19 +204,24 @@ export async function POST(request: NextRequest) {
         })
       } catch (printfulError: any) {
         console.error('❌ CRITICAL: Failed to create Printful order')
-        console.error('❌ Error details:', printfulError)
         console.error('❌ Error message:', printfulError.message)
-        console.error('❌ Error stack:', printfulError.stack)
+        console.error('❌ Error status:', printfulError.status)
         
         // Log the full error response if available
         if (printfulError.response) {
-          try {
-            const errorBody = await printfulError.response.text()
-            console.error('❌ Printful API error response:', errorBody)
-          } catch {
-            console.error('❌ Could not read error response body')
-          }
+          console.error('❌ Printful API error response:', printfulError.response)
         }
+        if (printfulError.errorData) {
+          console.error('❌ Printful error data:', JSON.stringify(printfulError.errorData, null, 2))
+        }
+        if (printfulError.stack) {
+          console.error('❌ Error stack:', printfulError.stack)
+        }
+        
+        // Log the order data that was sent (for debugging)
+        console.error('❌ Order data that was sent:')
+        console.error('❌ Items from metadata:', JSON.stringify(items, null, 2))
+        console.error('❌ Shipping address:', JSON.stringify(shippingAddress, null, 2))
 
         // Save failed order attempt to Firestore for debugging
         if (db) {
