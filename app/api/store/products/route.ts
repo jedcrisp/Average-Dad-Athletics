@@ -53,10 +53,19 @@ export async function GET() {
           }
           return true
         })
-        .map(async (p: PrintfulProduct) => {
+        .map(async (p: any) => {
           // p.id can be numeric or alphanumeric string (sync product ID)
+          // For sync products, the id is alphanumeric like "699204a318b1a7"
+          // For catalog products, the id is numeric
           const productId = typeof p.id === 'string' ? p.id : p.id.toString()
-          console.log(`Processing product: ${productId} (type: ${typeof p.id}) - ${p.name}`)
+          console.log(`Processing product: ${productId} (type: ${typeof p.id}, raw: ${JSON.stringify(p.id)}) - ${p.name}`)
+          console.log(`Product structure:`, {
+            id: p.id,
+            idType: typeof p.id,
+            hasSyncProduct: !!p.sync_product,
+            syncProductId: p.sync_product?.id,
+            productId: p.product_id,
+          })
           
           // Fetch full store product to get better image and variants
           let image = extractProductImage(p) // Start with list product image
