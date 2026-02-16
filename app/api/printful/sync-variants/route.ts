@@ -10,8 +10,6 @@ function getPrintfulApiKey(): string {
   return apiKey
 }
 
-const PRINTFUL_API_BASE = 'https://api.printful.com'
-
 /**
  * Debug endpoint to list sync variants for a sync product
  * GET /api/printful/sync-variants?sync_product_id=699204a318b1a7

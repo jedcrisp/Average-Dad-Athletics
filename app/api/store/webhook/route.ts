@@ -223,7 +223,7 @@ export async function POST(request: NextRequest) {
             shipping: ((session.shipping_cost?.amount_total || 0) / 100).toFixed(2),
             tax: ((session.total_details?.amount_tax || 0) / 100).toFixed(2),
           },
-          external_id: `stripe_cs_${sessionId}`, // Use Stripe session ID as external_id
+          external_id: sessionId, // Use Stripe session ID as external_id (no prefix needed)
         }
 
         console.log('📦 Creating Printful order with data:')
