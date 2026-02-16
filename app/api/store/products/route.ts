@@ -54,7 +54,9 @@ export async function GET() {
           return true
         })
         .map(async (p: PrintfulProduct) => {
-          console.log(`Processing product: ${p.id} - ${p.name}`)
+          // p.id can be numeric or alphanumeric string (sync product ID)
+          const productId = typeof p.id === 'string' ? p.id : p.id.toString()
+          console.log(`Processing product: ${productId} (type: ${typeof p.id}) - ${p.name}`)
           
           // Fetch full store product to get better image and variants
           let image = extractProductImage(p) // Start with list product image
@@ -62,7 +64,8 @@ export async function GET() {
           
           try {
             // Get full store product (has better image extraction with catalog fallback)
-            const storeProduct = await getPrintfulStoreProduct(p.id.toString())
+            // Use the product ID as-is (could be alphanumeric sync product ID)
+            const storeProduct = await getPrintfulStoreProduct(productId)
             
             // Use image from full store product (it has fallback to catalog product)
             const storeProductImage = extractProductImage(storeProduct)
@@ -93,7 +96,7 @@ export async function GET() {
               }
             }
           } catch (variantError: any) {
-            console.warn(`  Could not fetch full product details for ${p.id}:`, variantError.message)
+            console.warn(`  Could not fetch full product details for ${productId}:`, variantError.message)
             // Keep the image from list API if store product fetch fails
           }
           
@@ -101,14 +104,14 @@ export async function GET() {
           console.log(`  Final image: ${image.substring(0, 80)}...`)
           
           return {
-            id: p.id.toString(),
+            id: productId, // Use the product ID as-is (preserves alphanumeric sync product IDs)
             name: p.name,
             description: p.description || '',
             priceMin: Math.round(priceRange.min * 100), // Convert to cents
             priceMax: Math.round(priceRange.max * 100), // Convert to cents
             currency: priceRange.currency,
             image: image,
-            printfulProductId: p.id,
+            printfulProductId: productId, // Store the actual product ID (sync product ID for store products)
             category: p.type || 'apparel',
           }
         })

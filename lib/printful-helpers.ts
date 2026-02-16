@@ -2,7 +2,7 @@
 // Documentation: https://developers.printful.com/
 
 export interface PrintfulProduct {
-  id: number
+  id: number | string // Can be numeric (catalog) or alphanumeric string (sync product like "699204a318b1a7")
   name: string
   type: string
   description: string
