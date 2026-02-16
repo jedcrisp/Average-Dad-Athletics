@@ -474,8 +474,9 @@ export async function createPrintfulOrder(orderData: {
     
     console.log('📦 Creating Printful order with payload:', JSON.stringify(payload, null, 2))
     
-    // Use /store/orders endpoint for store-specific orders
-    const response = await fetch(`${PRINTFUL_API_BASE}/store/orders`, {
+    // Use /orders endpoint (standard Printful API endpoint)
+    // Note: For store-specific orders, Printful uses the API key to determine the store
+    const response = await fetch(`${PRINTFUL_API_BASE}/orders`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${apiKey}`,
