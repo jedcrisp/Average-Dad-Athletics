@@ -386,28 +386,57 @@ export async function createPrintfulOrder(orderData: {
     shipping: string
     tax: string
   }
+  external_id?: string
 }): Promise<any> {
   const apiKey = getPrintfulApiKey()
   
   try {
+    const payload: any = {
+      recipient: orderData.recipient,
+      items: orderData.items,
+    }
+    
+    if (orderData.retail_costs) {
+      payload.retail_costs = orderData.retail_costs
+    }
+    
+    if (orderData.external_id) {
+      payload.external_id = orderData.external_id
+    }
+    
+    console.log('📦 Creating Printful order with payload:', JSON.stringify(payload, null, 2))
+    
     const response = await fetch(`${PRINTFUL_API_BASE}/orders`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(orderData),
+      body: JSON.stringify(payload),
     })
 
+    const responseText = await response.text()
+    console.log('📡 Printful API response status:', response.status)
+    console.log('📡 Printful API response body:', responseText)
+
     if (!response.ok) {
-      const errorData = await response.json()
-      throw new Error(`Printful API error: ${errorData.message || response.statusText}`)
+      let errorData
+      try {
+        errorData = JSON.parse(responseText)
+      } catch {
+        errorData = { message: responseText }
+      }
+      const errorMessage = `Printful API error (${response.status}): ${errorData.message || response.statusText}`
+      console.error('❌ Printful order creation failed:', errorMessage)
+      console.error('❌ Full error response:', errorData)
+      throw new Error(errorMessage)
     }
 
-    const data = await response.json()
+    const data = JSON.parse(responseText)
+    console.log('✅ Printful order created successfully:', data.result?.id || data.result?.external_id)
     return data.result
   } catch (error) {
-    console.error('Error creating Printful order:', error)
+    console.error('❌ Error creating Printful order:', error)
     throw error
   }
 }
