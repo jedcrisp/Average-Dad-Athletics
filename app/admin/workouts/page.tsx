@@ -108,10 +108,22 @@ export default function AdminWorkoutsPage() {
     setSubmitting(true)
 
     try {
+      // Check if workout date is today or in the past
+      const workoutDate = new Date(date)
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      workoutDate.setHours(0, 0, 0, 0)
+      
+      // If date is today or past, automatically set to active (even if status was scheduled)
+      let finalStatus = status
+      if (workoutDate <= today && status === 'scheduled') {
+        finalStatus = 'active'
+      }
+
       const workoutData: any = {
         title: title.trim(),
         date,
-        status, // Include status (scheduled, active, or completed)
+        status: finalStatus, // Use final status (auto-changed from scheduled to active if date has passed)
       }
       
       // Optional fields - only include if they have values
