@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { adminDb } from '@/lib/firebase-admin'
 import { db } from '@/lib/firebase'
 import { doc, getDoc } from 'firebase/firestore'
 
@@ -17,23 +18,42 @@ interface ForumPost {
 }
 
 async function getForumPost(id: string): Promise<ForumPost | null> {
-  if (!db) return null
-  
-  try {
-    const postRef = doc(db, 'forumPosts', id)
-    const postSnap = await getDoc(postRef)
-    if (postSnap.exists()) {
-      const data = postSnap.data()
-      return { 
-        id: postSnap.id, 
-        ...data 
-      } as ForumPost
+  // Prefer Firebase Admin SDK for server-side reads (bypasses security rules)
+  // This is necessary for social media crawlers that don't have authentication
+  if (adminDb) {
+    try {
+      const postRef = adminDb.collection('forumPosts').doc(id)
+      const postSnap = await postRef.get()
+      if (postSnap.exists) {
+        const data = postSnap.data()
+        return { 
+          id: postSnap.id, 
+          ...data 
+        } as ForumPost
+      }
+    } catch (error) {
+      console.error('Error fetching post with Admin SDK:', error)
     }
-    return null
-  } catch (error) {
-    console.error('Error fetching post for metadata:', error)
-    return null
   }
+  
+  // Fallback to regular Firebase SDK if Admin SDK is not available
+  if (db) {
+    try {
+      const postRef = doc(db, 'forumPosts', id)
+      const postSnap = await getDoc(postRef)
+      if (postSnap.exists()) {
+        const data = postSnap.data()
+        return { 
+          id: postSnap.id, 
+          ...data 
+        } as ForumPost
+      }
+    } catch (error) {
+      console.error('Error fetching post with regular SDK:', error)
+    }
+  }
+  
+  return null
 }
 
 export async function generateMetadata(

@@ -32,10 +32,11 @@ service cloud.firestore {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
     
-    // Forum posts - authenticated users can read all, create their own, and add replies
+    // Forum posts - public reads (needed for social media crawlers), authenticated users can create and reply
     // Admins can delete any post
     match /forumPosts/{postId} {
-      allow read: if request.auth != null;
+      // Allow public reads for social media metadata generation and public viewing
+      allow read: if true;
       allow create: if request.auth != null && request.resource.data.authorId == request.auth.uid;
       // Allow updates for adding replies (any authenticated user can add replies)
       allow update: if request.auth != null;

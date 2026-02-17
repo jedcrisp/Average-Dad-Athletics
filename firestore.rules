@@ -1,0 +1,91 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Users can read and write their own user document
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Forum posts - public reads (needed for social media crawlers), authenticated users can create and reply
+    // Admins can delete any post
+    match /forumPosts/{postId} {
+      // Allow public reads for social media metadata generation and public viewing
+      allow read: if true;
+      allow create: if request.auth != null && request.resource.data.authorId == request.auth.uid;
+      // Allow updates for adding replies (any authenticated user can add replies)
+      allow update: if request.auth != null;
+      // Post author or admin can delete posts
+      allow delete: if request.auth != null && (request.auth.uid == resource.data.authorId || isAdmin());
+    }
+    
+    // Helper function to check if user is admin
+    function isAdmin() {
+      // Check if user document has isAdmin field
+      return request.auth != null && 
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
+    }
+    
+    // Workouts - PUBLIC read access (no auth required), only admins can write
+    match /workouts/{workoutId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+    
+    // Workout submissions - users can read all, create/update their own
+    match /workoutSubmissions/{submissionId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
+    }
+    
+    // Workout Comments collection - authenticated read and write
+    // Supports both top-level comments and replies (nested comments)
+    match /workoutComments/{commentId} {
+      // Anyone can read comments (to see comments on workouts)
+      allow read: if true;
+      
+      // Only authenticated users can create comments
+      // Main validation: user must be authenticated and userId must match
+      allow create: if request.auth != null 
+                   && request.resource.data.userId == request.auth.uid;
+      
+      // Users can only update their own comments
+      allow update: if request.auth != null 
+                   && request.resource.data.userId == request.auth.uid
+                   && resource.data.userId == request.auth.uid;
+      
+      // Users can only delete their own comments
+      allow delete: if request.auth != null 
+                   && resource.data.userId == request.auth.uid;
+    }
+    
+    // Store products - all authenticated users can read
+    // Write access: Allow for server-side API routes (admin check done on frontend)
+    // For production, consider using Firebase Admin SDK instead
+    match /storeProducts/{productId} {
+      allow read: if request.auth != null;
+      // Temporarily allow writes without auth for server-side sync API
+      // Frontend already enforces admin access, so this is acceptable
+      allow create, update, delete: if true;
+    }
+    
+    // Blocked users - only admins can read/write
+    match /blockedUsers/{email} {
+      allow read, write: if isAdmin();
+    }
+    
+    // Orders collection - server-side webhook can create/update (no auth context)
+    // Admins can read and delete
+    match /orders/{orderId} {
+      allow read: if true; // Allow reads for idempotency checks in webhook
+      allow create, update: if true; // Server-side webhook has no auth context
+      allow delete: if isAdmin();
+    }
+    
+    // Default: deny all other access
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
