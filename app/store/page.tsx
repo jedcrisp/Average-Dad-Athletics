@@ -134,13 +134,8 @@ export default function StorePage() {
                     <p className="text-sm text-gray-600 mb-3 line-clamp-2">{product.description}</p>
                   )}
                   <p className="text-xl font-bold text-primary-600">
-                    {product.priceMin === product.priceMax ? (
-                      // Same price for all variants - show single price
-                      `$${(product.priceMin / 100).toFixed(2)} ${product.currency.toUpperCase()}`
-                    ) : (
-                      // Different prices - show range
-                      `$${(product.priceMin / 100).toFixed(2)} - $${(product.priceMax / 100).toFixed(2)} ${product.currency.toUpperCase()}`
-                    )}
+                    {/* Always show price range format for consistency */}
+                    {`$${(product.priceMin / 100).toFixed(2)} - $${(product.priceMax / 100).toFixed(2)} ${product.currency.toUpperCase()}`}
                   </p>
                 </div>
               </Link>
