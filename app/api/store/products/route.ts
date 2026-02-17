@@ -6,23 +6,41 @@ import { getPrintfulProducts, getPrintfulStoreProduct, getPrintfulProductVariant
  */
 function calculatePriceRange(variants: any[]): { min: number; max: number; currency: string } {
   if (!variants || variants.length === 0) {
+    console.warn('  ⚠️ No variants provided for price calculation')
     return { min: 24.99, max: 24.99, currency: 'usd' }
   }
 
   const prices = variants
-    .map((v: any) => {
-      // Price can be string or number, handle both
-      const priceStr = v.retail_price || v.price || '24.99'
-      return parseFloat(priceStr.toString())
+    .map((v: any, index: number) => {
+      // Try multiple price fields - Printful uses different fields for different product types
+      const priceStr = v.retail_price || v.price || v.retailPrice || v.unit_price || null
+      
+      if (!priceStr) {
+        console.warn(`  ⚠️ Variant ${index} (${v.name || v.id || 'unknown'}) has no price field`)
+        return null
+      }
+      
+      const price = parseFloat(priceStr.toString())
+      if (isNaN(price) || price <= 0) {
+        console.warn(`  ⚠️ Variant ${index} (${v.name || v.id || 'unknown'}) has invalid price: ${priceStr}`)
+        return null
+      }
+      
+      return price
     })
-    .filter((p: number) => !isNaN(p) && p > 0)
+    .filter((p: number | null): p is number => p !== null && !isNaN(p) && p > 0)
 
   if (prices.length === 0) {
+    console.warn('  ⚠️ No valid prices found in variants, using default')
     return { min: 24.99, max: 24.99, currency: 'usd' }
   }
 
   const min = Math.min(...prices)
   const max = Math.max(...prices)
+  
+  // If all variants have the same price, still return a range (min === max)
+  // This ensures the frontend always shows a range format
+  console.log(`  💰 Price range calculated: $${min.toFixed(2)} - $${max.toFixed(2)} (from ${prices.length} variants)`)
   
   return { min, max, currency: 'usd' }
 }
@@ -92,17 +110,51 @@ export async function GET() {
               console.log(`  📸 Using image from list: ${image.substring(0, 80)}...`)
             }
             
-            // Calculate price range from variants
+            // Calculate price range from variants - check multiple sources
+            let variantsFound = false
+            
+            // First, try sync_variants (for sync products)
             if (storeProduct.sync_variants && Array.isArray(storeProduct.sync_variants) && storeProduct.sync_variants.length > 0) {
-              console.log(`  Found ${storeProduct.sync_variants.length} sync_variants for price calculation`)
+              console.log(`  ✅ Found ${storeProduct.sync_variants.length} sync_variants for price calculation`)
               priceRange = calculatePriceRange(storeProduct.sync_variants)
-            } else if (storeProduct.product_id) {
-              // Fallback to catalog variants
-              console.log(`  Fetching catalog variants for product ${storeProduct.product_id}`)
-              const catalogVariants = await getPrintfulProductVariants(storeProduct.product_id)
-              if (catalogVariants && catalogVariants.length > 0) {
-                priceRange = calculatePriceRange(catalogVariants)
+              variantsFound = true
+            }
+            
+            // If no sync variants, try variants array (alternative structure)
+            if (!variantsFound && storeProduct.variants && Array.isArray(storeProduct.variants) && storeProduct.variants.length > 0) {
+              console.log(`  ✅ Found ${storeProduct.variants.length} variants for price calculation`)
+              priceRange = calculatePriceRange(storeProduct.variants)
+              variantsFound = true
+            }
+            
+            // Fallback to catalog variants using product_id
+            if (!variantsFound && storeProduct.product_id) {
+              console.log(`  📡 Fetching catalog variants for product ${storeProduct.product_id}...`)
+              try {
+                const catalogVariants = await getPrintfulProductVariants(Number(storeProduct.product_id))
+                if (catalogVariants && catalogVariants.length > 0) {
+                  console.log(`  ✅ Found ${catalogVariants.length} catalog variants for price calculation`)
+                  priceRange = calculatePriceRange(catalogVariants)
+                  variantsFound = true
+                } else {
+                  console.log(`  ⚠️ No catalog variants found for product ${storeProduct.product_id}`)
+                }
+              } catch (catalogError: any) {
+                console.warn(`  ⚠️ Could not fetch catalog variants: ${catalogError.message}`)
               }
+            }
+            
+            // If still no variants found, log warning
+            if (!variantsFound) {
+              console.warn(`  ⚠️ No variants found for product ${productId}, using default price range`)
+              console.log(`  Product structure:`, {
+                hasSyncVariants: !!storeProduct.sync_variants,
+                syncVariantsCount: storeProduct.sync_variants?.length || 0,
+                hasVariants: !!storeProduct.variants,
+                variantsCount: storeProduct.variants?.length || 0,
+                productId: storeProduct.product_id,
+                syncProductId: storeProduct.sync_product?.id,
+              })
             }
           } catch (variantError: any) {
             console.warn(`  Could not fetch full product details for ${productId}:`, variantError.message)
