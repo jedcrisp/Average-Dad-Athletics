@@ -40,20 +40,37 @@ export default function WorkoutsPage() {
         const fetchedWorkouts = await workoutHelpers.getAll()
         
         // Check and update workouts that should be active
-        // Parse today's date as local date (YYYY-MM-DD format)
+        // Get today's date in local timezone (YYYY-MM-DD format)
         const today = new Date()
-        const todayString = today.toISOString().split('T')[0] // Format: YYYY-MM-DD
+        const year = today.getFullYear()
+        const month = String(today.getMonth() + 1).padStart(2, '0')
+        const day = String(today.getDate()).padStart(2, '0')
+        const todayString = `${year}-${month}-${day}` // Format: YYYY-MM-DD
         
-        const updatePromises = fetchedWorkouts
+        // Update scheduled workouts that should be active (date is today or past)
+        const activatePromises = fetchedWorkouts
           .filter(workout => {
             if (workout.status !== 'scheduled' || !workout.id) return false
             // Compare date strings directly (workout.date is already in YYYY-MM-DD format)
-            // Only update if workout date is today or in the past
+            // Only update if workout date is today or in the past (not future)
             return workout.date <= todayString
           })
           .map(workout => {
             return workoutHelpers.update(workout.id!, { status: 'active' })
           })
+        
+        // Revert active workouts that should be scheduled (date is in the future)
+        const schedulePromises = fetchedWorkouts
+          .filter(workout => {
+            if (workout.status !== 'active' || !workout.id) return false
+            // Only revert if workout date is in the future
+            return workout.date > todayString
+          })
+          .map(workout => {
+            return workoutHelpers.update(workout.id!, { status: 'scheduled' })
+          })
+        
+        const updatePromises = [...activatePromises, ...schedulePromises]
         
         // Update workouts in parallel
         if (updatePromises.length > 0) {
