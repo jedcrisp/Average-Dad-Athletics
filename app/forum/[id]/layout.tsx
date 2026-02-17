@@ -66,6 +66,7 @@ export async function generateMetadata(
       siteName: 'Average Dad Athletics',
       type: 'article',
       locale: 'en_US',
+      images: [{ url: `${baseUrl}/og/default.jpg` }],
     },
     twitter: {
       card: 'summary',
