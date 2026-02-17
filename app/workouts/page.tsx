@@ -38,7 +38,32 @@ export default function WorkoutsPage() {
       try {
         setLoading(true)
         const fetchedWorkouts = await workoutHelpers.getAll()
-        setWorkouts(fetchedWorkouts)
+        
+        // Check and update workouts that should be active
+        const today = new Date()
+        today.setHours(0, 0, 0, 0)
+        
+        const updatePromises = fetchedWorkouts
+          .filter(workout => {
+            if (workout.status !== 'scheduled' || !workout.id) return false
+            const workoutDate = new Date(workout.date)
+            workoutDate.setHours(0, 0, 0, 0)
+            return workoutDate <= today
+          })
+          .map(workout => {
+            return workoutHelpers.update(workout.id!, { status: 'active' })
+          })
+        
+        // Update workouts in parallel
+        if (updatePromises.length > 0) {
+          await Promise.all(updatePromises)
+          // Refetch workouts after updates
+          const updatedWorkouts = await workoutHelpers.getAll()
+          setWorkouts(updatedWorkouts)
+        } else {
+          setWorkouts(fetchedWorkouts)
+        }
+        
         setError('')
       } catch (err: any) {
         console.error('Error fetching workouts:', err)

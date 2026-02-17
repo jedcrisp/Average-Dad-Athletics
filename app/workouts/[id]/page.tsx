@@ -39,7 +39,21 @@ export default function WorkoutDetailPage() {
         setLoading(true)
         const workoutData = await workoutHelpers.getById(params.id)
         if (workoutData) {
-          setWorkout(workoutData)
+          // Check if workout should be active (date is today or past)
+          const today = new Date()
+          today.setHours(0, 0, 0, 0)
+          const workoutDate = new Date(workoutData.date)
+          workoutDate.setHours(0, 0, 0, 0)
+          
+          // If workout is scheduled but date has passed, update it to active
+          if (workoutData.status === 'scheduled' && workoutDate <= today && workoutData.id) {
+            await workoutHelpers.update(workoutData.id, { status: 'active' })
+            // Refetch the updated workout
+            const updatedWorkout = await workoutHelpers.getById(params.id)
+            setWorkout(updatedWorkout)
+          } else {
+            setWorkout(workoutData)
+          }
         } else {
           router.push('/workouts')
         }
