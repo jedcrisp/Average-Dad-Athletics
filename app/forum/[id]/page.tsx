@@ -168,18 +168,44 @@ export default function ForumPostPage() {
 
   // Share to Facebook
   const shareToFacebook = () => {
-    const url = getShareUrl()
-    const shareText = post?.title || 'Check out this conversation on Average Dad Athletics'
-    const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}&quote=${encodeURIComponent(shareText)}`
-    window.open(facebookUrl, '_blank', 'width=600,height=400')
+    try {
+      const url = getShareUrl()
+      if (!url) {
+        alert('Unable to get page URL. Please copy the link manually.')
+        return
+      }
+      // Use simpler Facebook share URL (without quote parameter to avoid React errors)
+      const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`
+      const shareWindow = window.open(facebookUrl, '_blank', 'width=600,height=500,scrollbars=yes,resizable=yes')
+      if (!shareWindow) {
+        // Popup blocked - fallback to direct navigation
+        window.location.href = facebookUrl
+      }
+    } catch (error) {
+      console.error('Error sharing to Facebook:', error)
+      alert('Unable to open Facebook share. Please try again or copy the link manually.')
+    }
   }
 
   // Share to Twitter
   const shareToTwitter = () => {
-    const url = getShareUrl()
-    const shareText = post?.title || 'Check out this conversation on Average Dad Athletics'
-    const twitterUrl = `https://twitter.com/intent/tweet?url=${encodeURIComponent(url)}&text=${encodeURIComponent(shareText)}`
-    window.open(twitterUrl, '_blank', 'width=600,height=400')
+    try {
+      const url = getShareUrl()
+      if (!url) {
+        alert('Unable to get page URL. Please copy the link manually.')
+        return
+      }
+      const shareText = post?.title || 'Check out this conversation on Average Dad Athletics'
+      const twitterUrl = `https://twitter.com/intent/tweet?url=${encodeURIComponent(url)}&text=${encodeURIComponent(shareText)}`
+      const shareWindow = window.open(twitterUrl, '_blank', 'width=600,height=500,scrollbars=yes,resizable=yes')
+      if (!shareWindow) {
+        // Popup blocked - fallback to direct navigation
+        window.location.href = twitterUrl
+      }
+    } catch (error) {
+      console.error('Error sharing to Twitter:', error)
+      alert('Unable to open Twitter share. Please try again or copy the link manually.')
+    }
   }
 
   if (loading) {
