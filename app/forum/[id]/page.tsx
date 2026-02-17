@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import Link from 'next/link'
-import { UserIcon, ClockIcon, ArrowLeftIcon, ChatBubbleLeftRightIcon, StarIcon } from '@heroicons/react/24/outline'
+import { UserIcon, ClockIcon, ArrowLeftIcon, ChatBubbleLeftRightIcon, StarIcon, ShareIcon } from '@heroicons/react/24/outline'
 import { StarIcon as StarIconSolid } from '@heroicons/react/24/solid'
 import { forumHelpers, blockedUserHelpers, ForumPost, ForumReply } from '@/lib/firebase-helpers'
 
@@ -158,6 +158,30 @@ export default function ForumPostPage() {
     }
   }
 
+  // Get the current page URL for sharing
+  const getShareUrl = () => {
+    if (typeof window !== 'undefined') {
+      return window.location.href
+    }
+    return ''
+  }
+
+  // Share to Facebook
+  const shareToFacebook = () => {
+    const url = getShareUrl()
+    const shareText = post?.title || 'Check out this conversation on Average Dad Athletics'
+    const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}&quote=${encodeURIComponent(shareText)}`
+    window.open(facebookUrl, '_blank', 'width=600,height=400')
+  }
+
+  // Share to Twitter
+  const shareToTwitter = () => {
+    const url = getShareUrl()
+    const shareText = post?.title || 'Check out this conversation on Average Dad Athletics'
+    const twitterUrl = `https://twitter.com/intent/tweet?url=${encodeURIComponent(url)}&text=${encodeURIComponent(shareText)}`
+    window.open(twitterUrl, '_blank', 'width=600,height=400')
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -219,26 +243,51 @@ export default function ForumPostPage() {
           </div>
           <div className="flex items-start justify-between gap-4 mb-4">
             <h1 className="text-3xl font-bold text-gray-900 flex-1">{post.title}</h1>
-            {user && (
-              <button
-                onClick={handleToggleFavorite}
-                disabled={togglingFavorite}
-                className={`p-2 rounded-lg transition-colors flex-shrink-0 ${
-                  isFavorited
-                    ? 'text-yellow-500 hover:bg-yellow-50'
-                    : 'text-gray-400 hover:bg-gray-100 hover:text-yellow-500'
-                } disabled:opacity-50`}
-                title={isFavorited ? 'Remove from favorites' : 'Add to favorites'}
-              >
-                {togglingFavorite ? (
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-yellow-500"></div>
-                ) : isFavorited ? (
-                  <StarIconSolid className="w-6 h-6" />
-                ) : (
-                  <StarIcon className="w-6 h-6" />
-                )}
-              </button>
-            )}
+            <div className="flex items-center gap-2 flex-shrink-0">
+              {/* Share Buttons */}
+              <div className="flex items-center gap-2 border-r border-gray-200 pr-2">
+                <span className="text-xs text-gray-500 mr-1">Share:</span>
+                <button
+                  onClick={shareToFacebook}
+                  className="p-2 rounded-lg transition-colors text-blue-600 hover:bg-blue-50"
+                  title="Share on Facebook"
+                >
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                  </svg>
+                </button>
+                <button
+                  onClick={shareToTwitter}
+                  className="p-2 rounded-lg transition-colors text-blue-400 hover:bg-blue-50"
+                  title="Share on Twitter"
+                >
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                  </svg>
+                </button>
+              </div>
+              {/* Favorite Button */}
+              {user && (
+                <button
+                  onClick={handleToggleFavorite}
+                  disabled={togglingFavorite}
+                  className={`p-2 rounded-lg transition-colors ${
+                    isFavorited
+                      ? 'text-yellow-500 hover:bg-yellow-50'
+                      : 'text-gray-400 hover:bg-gray-100 hover:text-yellow-500'
+                  } disabled:opacity-50`}
+                  title={isFavorited ? 'Remove from favorites' : 'Add to favorites'}
+                >
+                  {togglingFavorite ? (
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-yellow-500"></div>
+                  ) : isFavorited ? (
+                    <StarIconSolid className="w-6 h-6" />
+                  ) : (
+                    <StarIcon className="w-6 h-6" />
+                  )}
+                </button>
+              )}
+            </div>
           </div>
           
           <div className="flex items-center gap-6 text-sm text-gray-500 mb-6">
