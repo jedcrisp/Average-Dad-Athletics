@@ -40,15 +40,16 @@ export default function WorkoutsPage() {
         const fetchedWorkouts = await workoutHelpers.getAll()
         
         // Check and update workouts that should be active
+        // Parse today's date as local date (YYYY-MM-DD format)
         const today = new Date()
-        today.setHours(0, 0, 0, 0)
+        const todayString = today.toISOString().split('T')[0] // Format: YYYY-MM-DD
         
         const updatePromises = fetchedWorkouts
           .filter(workout => {
             if (workout.status !== 'scheduled' || !workout.id) return false
-            const workoutDate = new Date(workout.date)
-            workoutDate.setHours(0, 0, 0, 0)
-            return workoutDate <= today
+            // Compare date strings directly (workout.date is already in YYYY-MM-DD format)
+            // Only update if workout date is today or in the past
+            return workout.date <= todayString
           })
           .map(workout => {
             return workoutHelpers.update(workout.id!, { status: 'active' })

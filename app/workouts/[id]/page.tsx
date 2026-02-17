@@ -40,13 +40,13 @@ export default function WorkoutDetailPage() {
         const workoutData = await workoutHelpers.getById(params.id)
         if (workoutData) {
           // Check if workout should be active (date is today or past)
+          // Parse today's date as local date (YYYY-MM-DD format)
           const today = new Date()
-          today.setHours(0, 0, 0, 0)
-          const workoutDate = new Date(workoutData.date)
-          workoutDate.setHours(0, 0, 0, 0)
+          const todayString = today.toISOString().split('T')[0] // Format: YYYY-MM-DD
           
           // If workout is scheduled but date has passed, update it to active
-          if (workoutData.status === 'scheduled' && workoutDate <= today && workoutData.id) {
+          // Compare date strings directly (workoutData.date is already in YYYY-MM-DD format)
+          if (workoutData.status === 'scheduled' && workoutData.date <= todayString && workoutData.id) {
             await workoutHelpers.update(workoutData.id, { status: 'active' })
             // Refetch the updated workout
             const updatedWorkout = await workoutHelpers.getById(params.id)
