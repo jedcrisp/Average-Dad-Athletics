@@ -2,14 +2,32 @@ import type { Metadata } from 'next'
 import { db } from '@/lib/firebase'
 import { doc, getDoc } from 'firebase/firestore'
 
-async function getForumPost(id: string) {
+// Forum post type for server-side usage
+interface ForumPost {
+  id?: string
+  title: string
+  author: string
+  authorId: string
+  date: string
+  replies: number
+  category: string
+  labels?: string[]
+  excerpt: string
+  content?: string
+}
+
+async function getForumPost(id: string): Promise<ForumPost | null> {
   if (!db) return null
   
   try {
     const postRef = doc(db, 'forumPosts', id)
     const postSnap = await getDoc(postRef)
     if (postSnap.exists()) {
-      return { id: postSnap.id, ...postSnap.data() }
+      const data = postSnap.data()
+      return { 
+        id: postSnap.id, 
+        ...data 
+      } as ForumPost
     }
     return null
   } catch (error) {

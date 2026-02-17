@@ -166,6 +166,36 @@ export default function ForumPostPage() {
     return ''
   }
 
+  // Copy link to clipboard
+  const copyLink = async () => {
+    try {
+      const url = getShareUrl()
+      if (!url) {
+        alert('Unable to get page URL.')
+        return
+      }
+      await navigator.clipboard.writeText(url)
+      alert('Link copied to clipboard!')
+    } catch (error) {
+      console.error('Error copying link:', error)
+      // Fallback for older browsers
+      const url = getShareUrl()
+      const textArea = document.createElement('textarea')
+      textArea.value = url
+      textArea.style.position = 'fixed'
+      textArea.style.opacity = '0'
+      document.body.appendChild(textArea)
+      textArea.select()
+      try {
+        document.execCommand('copy')
+        alert('Link copied to clipboard!')
+      } catch (err) {
+        alert('Unable to copy link. Please copy manually: ' + url)
+      }
+      document.body.removeChild(textArea)
+    }
+  }
+
   // Share to Facebook
   const shareToFacebook = () => {
     try {
@@ -174,17 +204,35 @@ export default function ForumPostPage() {
         alert('Unable to get page URL. Please copy the link manually.')
         return
       }
-      // Use simpler Facebook share URL (without quote parameter to avoid React errors)
-      const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`
-      const shareWindow = window.open(facebookUrl, '_blank', 'width=600,height=500,scrollbars=yes,resizable=yes')
-      if (!shareWindow) {
-        // Popup blocked - fallback to direct navigation
-        window.location.href = facebookUrl
+      // Try Web Share API first (better mobile support)
+      if (navigator.share) {
+        navigator.share({
+          title: post?.title || 'Check out this conversation',
+          text: post?.excerpt || post?.content?.substring(0, 200) || 'Join the conversation on Average Dad Athletics',
+          url: url,
+        }).catch((error) => {
+          // User cancelled or error - fallback to Facebook URL
+          if (error.name !== 'AbortError') {
+            openFacebookShare(url)
+          }
+        })
+      } else {
+        // Fallback to Facebook share URL
+        openFacebookShare(url)
       }
     } catch (error) {
       console.error('Error sharing to Facebook:', error)
-      alert('Unable to open Facebook share. Please try again or copy the link manually.')
+      const url = getShareUrl()
+      openFacebookShare(url)
     }
+  }
+
+  const openFacebookShare = (url: string) => {
+    // Use Facebook's share dialog with minimal parameters
+    // Using direct navigation instead of popup to avoid React Suspense errors
+    const facebookUrl = `https://www.facebook.com/sharer.php?u=${encodeURIComponent(url)}`
+    // Open in new tab (not popup) to avoid Facebook's React errors
+    window.open(facebookUrl, '_blank', 'noopener,noreferrer')
   }
 
   // Share to Twitter
@@ -197,9 +245,9 @@ export default function ForumPostPage() {
       }
       const shareText = post?.title || 'Check out this conversation on Average Dad Athletics'
       const twitterUrl = `https://twitter.com/intent/tweet?url=${encodeURIComponent(url)}&text=${encodeURIComponent(shareText)}`
-      const shareWindow = window.open(twitterUrl, '_blank', 'width=600,height=500,scrollbars=yes,resizable=yes')
-      if (!shareWindow) {
-        // Popup blocked - fallback to direct navigation
+      const shareWindow = window.open(twitterUrl, '_blank')
+      if (!shareWindow || shareWindow.closed || typeof shareWindow.closed === 'undefined') {
+        // Popup blocked or failed - navigate directly
         window.location.href = twitterUrl
       }
     } catch (error) {
@@ -289,6 +337,15 @@ export default function ForumPostPage() {
                 >
                   <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                  </svg>
+                </button>
+                <button
+                  onClick={copyLink}
+                  className="p-2 rounded-lg transition-colors text-gray-600 hover:bg-gray-100"
+                  title="Copy link to clipboard"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                   </svg>
                 </button>
               </div>
