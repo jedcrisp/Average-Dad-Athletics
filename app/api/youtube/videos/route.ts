@@ -80,7 +80,7 @@ export async function GET() {
     const videoIds = videoItems.map((item: any) => item.snippet.resourceId.videoId)
 
     // Fetch statistics for all videos (batch request)
-    let statisticsMap: Record<string, { viewCount: string; likeCount: string }> = {}
+    let statisticsMap: Record<string, { viewCount: string; likeCount: string; commentCount: string }> = {}
     if (videoIds.length > 0) {
       // YouTube API allows up to 50 IDs per request
       const videoIdsString = videoIds.join(',')
@@ -95,6 +95,7 @@ export async function GET() {
             statisticsMap[item.id] = {
               viewCount: item.statistics?.viewCount || '0',
               likeCount: item.statistics?.likeCount || '0',
+              commentCount: item.statistics?.commentCount || '0',
             }
           })
         }
@@ -104,7 +105,7 @@ export async function GET() {
     // Transform the data to match our Video interface
     const videos = videoItems.map((item: any) => {
       const videoId = item.snippet.resourceId.videoId
-      const stats = statisticsMap[videoId] || { viewCount: '0', likeCount: '0' }
+      const stats = statisticsMap[videoId] || { viewCount: '0', likeCount: '0', commentCount: '0' }
       
       return {
         id: videoId,
@@ -115,6 +116,7 @@ export async function GET() {
         channelTitle: item.snippet.channelTitle,
         viewCount: stats.viewCount,
         likeCount: stats.likeCount,
+        commentCount: stats.commentCount,
       }
     })
 

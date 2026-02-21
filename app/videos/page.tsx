@@ -11,6 +11,7 @@ interface Video {
   channelTitle?: string
   viewCount?: string
   likeCount?: string
+  commentCount?: string
 }
 
 export default function VideosPage() {
@@ -132,10 +133,19 @@ export default function VideosPage() {
                         )}
                         {video.likeCount && (
                           <div className="flex items-center gap-1">
-                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                              <path d="M2 10.5a1.5 1.5 0 113 0v6a1.5 1.5 0 01-3 0v-6zM6 10.333v5.834a1 1 0 001.707.707l3.546-3.547a1 1 0 00.293-.707V8.93a1 1 0 00-.293-.707L7.707 4.677A1 1 0 006 5.384v4.949zM15.818 2.502a1.5 1.5 0 011.57.287l3.13 2.8a1.5 1.5 0 010 2.226l-3.13 2.8a1.5 1.5 0 01-1.57.288 1.5 1.5 0 01-.818-1.4V3.902a1.5 1.5 0 01.818-1.4z" />
+                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                              <path d="M7.493 19.5c-.425 0-.82-.236-.975-.632A3.54 3.54 0 014.5 16.5v-4.5c0-1.922 1.578-3.5 3.5-3.5h1.5c.178 0 .35.03.515.085L14.5 9.5h3.5c1.922 0 3.5 1.578 3.5 3.5v4.5c0 1.922-1.578 3.5-3.5 3.5h-1.5c-.178 0-.35-.03-.515-.085L10.5 19.5H7.493zM9 9.5c-1.105 0-2 .895-2 2v4.5c0 1.105.895 2 2 2h1.5l3-3h3.5c1.105 0 2-.895 2-2v-4.5c0-1.105-.895-2-2-2h-3.5l-3 3H9z"/>
+                              <path d="M9.75 12.75l1.5 1.5 3-3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
                             </svg>
                             <span>{parseInt(video.likeCount).toLocaleString()} likes</span>
+                          </div>
+                        )}
+                        {video.commentCount && (
+                          <div className="flex items-center gap-1">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                            </svg>
+                            <span>{parseInt(video.commentCount).toLocaleString()} comments</span>
                           </div>
                         )}
                       </div>
@@ -206,10 +216,18 @@ export default function VideosPage() {
                       )}
                       {video.likeCount && (
                         <div className="flex items-center gap-1">
-                          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                            <path d="M2 10.5a1.5 1.5 0 113 0v6a1.5 1.5 0 01-3 0v-6zM6 10.333v5.834a1 1 0 001.707.707l3.546-3.547a1 1 0 00.293-.707V8.93a1 1 0 00-.293-.707L7.707 4.677A1 1 0 006 5.384v4.949zM15.818 2.502a1.5 1.5 0 011.57.287l3.13 2.8a1.5 1.5 0 010 2.226l-3.13 2.8a1.5 1.5 0 01-1.57.288 1.5 1.5 0 01-.818-1.4V3.902a1.5 1.5 0 01.818-1.4z" />
+                          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M1 21h4V9H1v12zm22-11c0-1.1-.9-2-2-2h-6.31l.95-4.57.03-.32c0-.41-.17-.79-.44-1.06L14.17 1 7.59 7.59C7.22 7.95 7 8.45 7 9v10c0 1.1.9 2 2 2h9c.83 0 1.54-.5 1.84-1.22l3.02-7.05c.09-.23.14-.47.14-.73v-2z"/>
                           </svg>
                           <span>{parseInt(video.likeCount).toLocaleString()} likes</span>
+                        </div>
+                      )}
+                      {video.commentCount && (
+                        <div className="flex items-center gap-1">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                          </svg>
+                          <span>{parseInt(video.commentCount).toLocaleString()} comments</span>
                         </div>
                       )}
                     </div>
