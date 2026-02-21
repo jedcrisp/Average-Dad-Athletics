@@ -232,7 +232,7 @@ export async function POST(request: NextRequest) {
         if (adminDb) {
           try {
             const orderRef = adminDb.collection('orders').doc(sessionId)
-            await orderRef.set({
+            const orderData = {
               stripeSessionId: sessionId, // Original Stripe session ID
               printfulOrderId: printfulOrderId,
               printfulExternalId: safeExternalId, // Sanitized external_id sent to Printful
@@ -247,12 +247,33 @@ export async function POST(request: NextRequest) {
               status: 'created',
               createdAt: FieldValue.serverTimestamp(),
               updatedAt: FieldValue.serverTimestamp(),
+            }
+            await orderRef.set(orderData)
+            console.log('✅ Order saved to Firestore successfully!')
+            console.log('📋 Order Details:', {
+              orderId: sessionId,
+              printfulOrderId: printfulOrderId,
+              customerEmail: customerEmail,
+              amount: orderData.amountTotal,
+              currency: orderData.currency,
+              itemCount: items.length,
+              status: 'created',
             })
-            console.log('✅ Order saved to Firestore')
           } catch (firestoreError) {
             console.error('⚠️ Failed to save order to Firestore (non-fatal):', firestoreError)
+            console.error('⚠️ Order data that failed to save:', {
+              sessionId,
+              printfulOrderId: printfulOrderId,
+              customerEmail: customerEmail,
+            })
             // Don't fail the webhook if Firestore save fails
           }
+        } else {
+          console.warn('⚠️ Firebase Admin SDK not configured - order NOT saved to Firestore')
+          console.warn('⚠️ This means:')
+          console.warn('   - Orders cannot be tracked')
+          console.warn('   - Shipping notifications will not work')
+          console.warn('   - Please configure FIREBASE_ADMIN_PRIVATE_KEY and FIREBASE_ADMIN_CLIENT_EMAIL')
         }
 
         return NextResponse.json({ 
