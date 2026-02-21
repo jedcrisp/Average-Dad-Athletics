@@ -73,17 +73,50 @@ export async function GET() {
 
     const videosData = await videosResponse.json()
 
+    // Filter and get video IDs
+    const videoItems = videosData.items.filter(
+      (item: any) => item.snippet.title !== 'Private video' && item.snippet.title !== 'Deleted video'
+    )
+    const videoIds = videoItems.map((item: any) => item.snippet.resourceId.videoId)
+
+    // Fetch statistics for all videos (batch request)
+    let statisticsMap: Record<string, { viewCount: string; likeCount: string }> = {}
+    if (videoIds.length > 0) {
+      // YouTube API allows up to 50 IDs per request
+      const videoIdsString = videoIds.join(',')
+      const statsResponse = await fetch(
+        `https://www.googleapis.com/youtube/v3/videos?part=statistics&id=${videoIdsString}&key=${YOUTUBE_API_KEY}`
+      )
+
+      if (statsResponse.ok) {
+        const statsData = await statsResponse.json()
+        if (statsData.items) {
+          statsData.items.forEach((item: any) => {
+            statisticsMap[item.id] = {
+              viewCount: item.statistics?.viewCount || '0',
+              likeCount: item.statistics?.likeCount || '0',
+            }
+          })
+        }
+      }
+    }
+
     // Transform the data to match our Video interface
-    const videos = videosData.items
-      .filter((item: any) => item.snippet.title !== 'Private video' && item.snippet.title !== 'Deleted video')
-      .map((item: any) => ({
-        id: item.snippet.resourceId.videoId,
+    const videos = videoItems.map((item: any) => {
+      const videoId = item.snippet.resourceId.videoId
+      const stats = statisticsMap[videoId] || { viewCount: '0', likeCount: '0' }
+      
+      return {
+        id: videoId,
         title: item.snippet.title,
         description: item.snippet.description,
         thumbnail: item.snippet.thumbnails?.maxres?.url || item.snippet.thumbnails?.high?.url || item.snippet.thumbnails?.default?.url,
         publishedAt: item.snippet.publishedAt,
         channelTitle: item.snippet.channelTitle,
-      }))
+        viewCount: stats.viewCount,
+        likeCount: stats.likeCount,
+      }
+    })
 
     return NextResponse.json({ videos })
   } catch (error: any) {

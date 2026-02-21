@@ -9,6 +9,8 @@ interface Video {
   thumbnail: string
   publishedAt?: string
   channelTitle?: string
+  viewCount?: string
+  likeCount?: string
 }
 
 export default function VideosPage() {
@@ -77,17 +79,63 @@ export default function VideosPage() {
             >
               ← Back to all videos
             </button>
-            <div className="bg-white rounded-lg shadow-lg p-4 md:p-6">
-              <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
-                <iframe
-                  className="absolute top-0 left-0 w-full h-full rounded-lg"
-                  src={`https://www.youtube.com/embed/${selectedVideo}?autoplay=1`}
-                  title="YouTube video player"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                ></iframe>
-              </div>
-            </div>
+            {(() => {
+              const video = videos.find(v => v.id === selectedVideo)
+              return (
+                <div className="bg-white rounded-lg shadow-lg p-4 md:p-6">
+                  <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
+                    <iframe
+                      className="absolute top-0 left-0 w-full h-full rounded-lg"
+                      src={`https://www.youtube.com/embed/${selectedVideo}?autoplay=1`}
+                      title="YouTube video player"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                    ></iframe>
+                  </div>
+                  {video && (
+                    <div className="mt-4">
+                      <h2 className="text-2xl font-bold text-gray-900 mb-3">{video.title}</h2>
+                      <div className="flex items-center gap-6 text-sm text-gray-600 mb-3">
+                        {video.publishedAt && (
+                          <div className="flex items-center gap-1">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                            <span>
+                              {new Date(video.publishedAt).toLocaleDateString('en-US', {
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric'
+                              })}
+                            </span>
+                          </div>
+                        )}
+                        {video.viewCount && (
+                          <div className="flex items-center gap-1">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
+                            <span>{parseInt(video.viewCount).toLocaleString()} views</span>
+                          </div>
+                        )}
+                        {video.likeCount && (
+                          <div className="flex items-center gap-1">
+                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                              <path d="M2 10.5a1.5 1.5 0 113 0v6a1.5 1.5 0 01-3 0v-6zM6 10.333v5.834a1 1 0 001.707.707l3.546-3.547a1 1 0 00.293-.707V8.93a1 1 0 00-.293-.707L7.707 4.677A1 1 0 006 5.384v4.949zM15.818 2.502a1.5 1.5 0 011.57.287l3.13 2.8a1.5 1.5 0 010 2.226l-3.13 2.8a1.5 1.5 0 01-1.57.288 1.5 1.5 0 01-.818-1.4V3.902a1.5 1.5 0 01.818-1.4z" />
+                            </svg>
+                            <span>{parseInt(video.likeCount).toLocaleString()} likes</span>
+                          </div>
+                        )}
+                      </div>
+                      {video.description && (
+                        <p className="text-gray-700 whitespace-pre-wrap">{video.description}</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )
+            })()}
           </div>
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -135,6 +183,25 @@ export default function VideosPage() {
                         })}
                       </p>
                     )}
+                    <div className="flex items-center gap-4 text-sm text-gray-600 mb-2">
+                      {video.viewCount && (
+                        <div className="flex items-center gap-1">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                          </svg>
+                          <span>{parseInt(video.viewCount).toLocaleString()} views</span>
+                        </div>
+                      )}
+                      {video.likeCount && (
+                        <div className="flex items-center gap-1">
+                          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M2 10.5a1.5 1.5 0 113 0v6a1.5 1.5 0 01-3 0v-6zM6 10.333v5.834a1 1 0 001.707.707l3.546-3.547a1 1 0 00.293-.707V8.93a1 1 0 00-.293-.707L7.707 4.677A1 1 0 006 5.384v4.949zM15.818 2.502a1.5 1.5 0 011.57.287l3.13 2.8a1.5 1.5 0 010 2.226l-3.13 2.8a1.5 1.5 0 01-1.57.288 1.5 1.5 0 01-.818-1.4V3.902a1.5 1.5 0 01.818-1.4z" />
+                          </svg>
+                          <span>{parseInt(video.likeCount).toLocaleString()} likes</span>
+                        </div>
+                      )}
+                    </div>
                     <p className="text-gray-600 text-sm line-clamp-2">
                       {video.description || 'No description available'}
                     </p>
