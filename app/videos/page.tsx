@@ -83,118 +83,61 @@ export default function VideosPage() {
               Try again
             </button>
           </div>
-        ) : selectedVideo ? (
-          <div className="mb-8">
-            <button
-              onClick={() => setSelectedVideo(null)}
-              className="mb-4 text-primary-600 hover:text-primary-700 font-medium"
-            >
-              ← Back to all videos
-            </button>
-            {(() => {
-              const video = videos.find(v => v.id === selectedVideo)
-              return (
-                <div className="bg-white rounded-lg shadow-lg p-4 md:p-6">
-                  <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
-                    <iframe
-                      className="absolute top-0 left-0 w-full h-full rounded-lg"
-                      src={`https://www.youtube.com/embed/${selectedVideo}?autoplay=1`}
-                      title="YouTube video player"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      allowFullScreen
-                    ></iframe>
-                  </div>
-                  {video && (
-                    <div className="mt-4">
-                      <h2 className="text-2xl font-bold text-gray-900 mb-3">{video.title}</h2>
-                      <div className="flex items-center gap-6 text-sm text-gray-600 mb-3">
-                        {video.publishedAt && (
-                          <div className="flex items-center gap-1">
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                            </svg>
-                            <span>
-                              {new Date(video.publishedAt).toLocaleDateString('en-US', {
-                                year: 'numeric',
-                                month: 'long',
-                                day: 'numeric'
-                              })}
-                            </span>
-                          </div>
-                        )}
-                        {video.viewCount && (
-                          <div className="flex items-center gap-1">
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                            </svg>
-                            <span>{parseInt(video.viewCount).toLocaleString()} views</span>
-                          </div>
-                        )}
-                        {video.likeCount && (
-                          <div className="flex items-center gap-1">
-                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                              <path d="M7.493 19.5c-.425 0-.82-.236-.975-.632A3.54 3.54 0 014.5 16.5v-4.5c0-1.922 1.578-3.5 3.5-3.5h1.5c.178 0 .35.03.515.085L14.5 9.5h3.5c1.922 0 3.5 1.578 3.5 3.5v4.5c0 1.922-1.578 3.5-3.5 3.5h-1.5c-.178 0-.35-.03-.515-.085L10.5 19.5H7.493zM9 9.5c-1.105 0-2 .895-2 2v4.5c0 1.105.895 2 2 2h1.5l3-3h3.5c1.105 0 2-.895 2-2v-4.5c0-1.105-.895-2-2-2h-3.5l-3 3H9z"/>
-                              <path d="M9.75 12.75l1.5 1.5 3-3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
-                            </svg>
-                            <span>{parseInt(video.likeCount).toLocaleString()} likes</span>
-                          </div>
-                        )}
-                        {video.commentCount && (
-                          <div className="flex items-center gap-1">
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                            </svg>
-                            <span>{parseInt(video.commentCount).toLocaleString()} comments</span>
-                          </div>
-                        )}
-                      </div>
-                      {video.description && (
-                        <p className="text-gray-700 whitespace-pre-wrap">{video.description}</p>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )
-            })()}
-          </div>
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {videos.length > 0 ? (
               videos.map((video) => (
                 <div
                   key={video.id}
-                  className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-shadow cursor-pointer"
-                  onClick={() => setSelectedVideo(video.id)}
+                  className={`bg-white rounded-lg shadow-md overflow-hidden transition-all ${
+                    selectedVideo === video.id 
+                      ? 'md:col-span-2 lg:col-span-3 shadow-xl' 
+                      : 'hover:shadow-xl cursor-pointer'
+                  }`}
+                  onClick={() => setSelectedVideo(selectedVideo === video.id ? null : video.id)}
                 >
-                  <div className="relative aspect-video bg-gray-200">
-                    {video.thumbnail ? (
-                      <img
-                        src={video.thumbnail}
-                        alt={video.title}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <img
-                        src={`https://img.youtube.com/vi/${video.id}/maxresdefault.jpg`}
-                        alt={video.title}
-                        className="w-full h-full object-cover"
-                      />
-                    )}
-                    <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30 hover:bg-opacity-50 transition-opacity">
-                      <div className="w-16 h-16 bg-primary-600 rounded-full flex items-center justify-center">
-                        <svg
-                          className="w-8 h-8 text-white ml-1"
-                          fill="currentColor"
-                          viewBox="0 0 20 20"
-                        >
-                          <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" />
-                        </svg>
+                  {selectedVideo === video.id ? (
+                    <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
+                      <iframe
+                        className="absolute top-0 left-0 w-full h-full rounded-t-lg"
+                        src={`https://www.youtube.com/embed/${video.id}?autoplay=1`}
+                        title="YouTube video player"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                      ></iframe>
+                    </div>
+                  ) : (
+                    <div className="relative aspect-video bg-gray-200">
+                      {video.thumbnail ? (
+                        <img
+                          src={video.thumbnail}
+                          alt={video.title}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <img
+                          src={`https://img.youtube.com/vi/${video.id}/maxresdefault.jpg`}
+                          alt={video.title}
+                          className="w-full h-full object-cover"
+                        />
+                      )}
+                      <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30 hover:bg-opacity-50 transition-opacity">
+                        <div className="w-16 h-16 bg-primary-600 rounded-full flex items-center justify-center">
+                          <svg
+                            className="w-8 h-8 text-white ml-1"
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                          >
+                            <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" />
+                          </svg>
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  )}
                   <div className="p-4">
-                    <h3 className="font-semibold text-lg mb-2 text-gray-900 line-clamp-2">{video.title}</h3>
+                    <h3 className={`font-semibold mb-2 text-gray-900 ${selectedVideo === video.id ? 'text-2xl' : 'text-lg line-clamp-2'}`}>
+                      {video.title}
+                    </h3>
                     {video.publishedAt && (
                       <p className="text-gray-500 text-xs mb-2">
                         {new Date(video.publishedAt).toLocaleDateString('en-US', {
@@ -231,9 +174,20 @@ export default function VideosPage() {
                         </div>
                       )}
                     </div>
-                    <p className="text-gray-600 text-sm line-clamp-2">
+                    <p className={`text-gray-600 text-sm ${selectedVideo === video.id ? 'whitespace-pre-wrap' : 'line-clamp-2'}`}>
                       {video.description || 'No description available'}
                     </p>
+                    {selectedVideo === video.id && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setSelectedVideo(null)
+                        }}
+                        className="mt-4 text-primary-600 hover:text-primary-700 font-medium text-sm"
+                      >
+                        Close video
+                      </button>
+                    )}
                   </div>
                 </div>
               ))
