@@ -19,16 +19,46 @@ const PRINTFUL_API_BASE = 'https://api.printful.com'
 
 export async function GET(request: NextRequest) {
   try {
+    // Check for required environment variables
+    const missingVars: string[] = []
+    
     if (!PRINTFUL_API_KEY) {
+      missingVars.push('PRINTFUL_API_KEY')
+    }
+
+    if (!adminDb) {
+      if (!process.env.FIREBASE_ADMIN_PRIVATE_KEY) {
+        missingVars.push('FIREBASE_ADMIN_PRIVATE_KEY')
+      }
+      if (!process.env.FIREBASE_ADMIN_CLIENT_EMAIL) {
+        missingVars.push('FIREBASE_ADMIN_CLIENT_EMAIL')
+      }
+      if (!process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID) {
+        missingVars.push('NEXT_PUBLIC_FIREBASE_PROJECT_ID')
+      }
+    }
+
+    if (missingVars.length > 0) {
+      console.error('❌ Missing required environment variables:', missingVars)
       return NextResponse.json(
-        { error: 'PRINTFUL_API_KEY not configured' },
+        { 
+          error: 'Configuration error',
+          message: 'Missing required environment variables',
+          missing: missingVars,
+          help: 'Please configure these in Vercel: Settings > Environment Variables. See PRINTFUL_WEBHOOK_SETUP.md for setup instructions.'
+        },
         { status: 500 }
       )
     }
 
     if (!adminDb) {
+      console.error('❌ Firebase Admin SDK not initialized despite having credentials')
       return NextResponse.json(
-        { error: 'Database not configured' },
+        { 
+          error: 'Database initialization failed',
+          message: 'Firebase Admin SDK failed to initialize. Check that FIREBASE_ADMIN_PRIVATE_KEY is properly formatted with \\n for newlines.',
+          help: 'The private key should include \\n characters for newlines, e.g., "-----BEGIN PRIVATE KEY-----\\n...\\n-----END PRIVATE KEY-----\\n"'
+        },
         { status: 500 }
       )
     }

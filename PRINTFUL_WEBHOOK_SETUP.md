@@ -9,6 +9,28 @@ This guide will help you set up automatic shipping notification emails to custom
 3. Your server looks up the customer email and sends them a shipping notification email
 4. The customer receives an email with tracking information
 
+## Prerequisites
+
+**Important:** This feature requires Firebase Admin SDK to be configured. If you see "Database not configured" errors, you need to set up Firebase Admin SDK first.
+
+### Set Up Firebase Admin SDK (Required)
+
+1. Go to [Firebase Console](https://console.firebase.google.com/)
+2. Select your project
+3. Go to **Project Settings** > **Service Accounts**
+4. Click **"Generate New Private Key"**
+5. Download the JSON file
+6. Extract these values from the JSON:
+   - `private_key` → `FIREBASE_ADMIN_PRIVATE_KEY`
+   - `client_email` → `FIREBASE_ADMIN_CLIENT_EMAIL`
+7. Add to your `.env.local`:
+   ```env
+   FIREBASE_ADMIN_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
+   FIREBASE_ADMIN_CLIENT_EMAIL=your-service-account@your-project.iam.gserviceaccount.com
+   ```
+8. **Important:** Keep the `\n` characters in the private key - they represent newlines
+9. Add the same variables to Vercel environment variables for production
+
 ## Step 1: Set Up Resend (Email Service)
 
 ### 1.1 Create Resend Account

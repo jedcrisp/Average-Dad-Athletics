@@ -8,7 +8,8 @@ import Link from 'next/link'
 import { 
   PlusIcon, 
   ArrowPathIcon, 
-  WrenchScrewdriverIcon 
+  WrenchScrewdriverIcon,
+  TruckIcon
 } from '@heroicons/react/24/outline'
 
 export default function AdminDashboardPage() {
@@ -142,6 +143,24 @@ export default function AdminDashboardPage() {
                   <h2 className="text-xl font-bold text-gray-900 mb-2">Forum Management</h2>
                   <p className="text-gray-600 text-sm">
                     Delete forum posts and block users who violate rules
+                  </p>
+                </div>
+              </div>
+            </Link>
+
+            {/* Check Shipped Orders */}
+            <Link
+              href="/admin/orders/check-shipped"
+              className="group relative bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-200 rounded-lg p-6 hover:border-blue-400 hover:shadow-lg transition-all"
+            >
+              <div className="flex items-start gap-4">
+                <div className="bg-blue-600 p-3 rounded-lg group-hover:bg-blue-700 transition-colors">
+                  <TruckIcon className="w-8 h-8 text-white" />
+                </div>
+                <div className="flex-1">
+                  <h2 className="text-xl font-bold text-gray-900 mb-2">Check Shipped Orders</h2>
+                  <p className="text-gray-600 text-sm">
+                    Check Printful for shipped orders and send customer notifications
                   </p>
                 </div>
               </div>
