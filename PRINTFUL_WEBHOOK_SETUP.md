@@ -27,7 +27,7 @@ This guide will help you set up automatic shipping notification emails to custom
 2. Click **"Add Domain"**
 3. Enter your domain (e.g., `averagedadathletics.com`)
 4. Follow the DNS setup instructions to verify your domain
-5. Once verified, you can send from `noreply@averagedadathletics.com`
+5. Once verified, you can send from `no-reply@averagedadathletics.com`
 
 **Note:** If you don't verify a domain, you can use Resend's test domain, but emails may go to spam.
 
@@ -59,13 +59,52 @@ Your webhook URL will be:
 - **Local Testing**: Use a tool like [ngrok](https://ngrok.com) to expose your local server
 
 ### 3.2 Configure Webhook in Printful
+
+**Option A: Via Settings Menu**
 1. Go to [Printful Dashboard](https://www.printful.com/dashboard)
-2. Navigate to **Settings** > **Webhooks**
-3. Click **"Add Webhook"** or **"Create Webhook"**
-4. Enter your webhook URL: `https://yourdomain.com/api/printful/webhook`
-5. Select the event: **"Package Shipped"**
-6. (Optional) Copy the webhook secret if provided
-7. Click **"Save"** or **"Create"**
+2. Click on your profile/account icon (top right)
+3. Go to **Settings** or **Account Settings**
+4. Look for **"API"** or **"Webhooks"** in the left sidebar
+5. Click **"Add Webhook"** or **"Create Webhook"**
+6. Enter your webhook URL: `https://yourdomain.com/api/printful/webhook`
+7. Select the event: **"Package Shipped"** or **"Order Shipped"**
+8. (Optional) Copy the webhook secret if provided
+9. Click **"Save"** or **"Create"**
+
+**Option B: Direct API/Webhooks Link**
+1. Try going directly to: [https://www.printful.com/dashboard/api](https://www.printful.com/dashboard/api)
+2. Or: [https://www.printful.com/dashboard/settings/webhooks](https://www.printful.com/dashboard/settings/webhooks)
+3. Look for webhook configuration options
+
+**Option C: If Webhooks Not Available (Alternative Solution)**
+If you can't find webhooks in Printful (they may only show "Create Token" in the API section), we have an alternative solution that polls Printful's API:
+
+### Using the Polling Solution
+
+1. **Manual Check (Admin Page)**
+   - Go to `/admin/orders/check-shipped` in your app
+   - Click "Check for Shipped Orders"
+   - This will check all pending orders and send customer emails for any that have shipped
+
+2. **Automated Check (Cron Job)**
+   - Set up a cron job to call `GET /api/printful/check-shipped` every 1-2 hours
+   - Options:
+     - **Vercel Cron**: Add to `vercel.json` (if using Vercel)
+     - **External Service**: Use cron-job.org or similar
+     - **Server Cron**: If you have a server, set up a cron job
+
+3. **How It Works**
+   - The endpoint checks all orders in Firestore with status "created" or "processing"
+   - Queries Printful API for each order's current status
+   - If an order is "fulfilled" or "shipped", sends customer email notification
+   - Updates order status in Firestore
+
+This solution works even if Printful doesn't offer webhooks for your account!
+
+**Note:** Printful's interface may vary. If you still can't find it, try:
+- Searching for "webhook" in the Printful dashboard search
+- Checking Printful's help documentation: [https://www.printful.com/docs](https://www.printful.com/docs)
+- Contacting Printful support
 
 ### 3.3 Test the Webhook
 1. Place a test order
