@@ -51,9 +51,20 @@ export default function VideosPage() {
           <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
             Latest Videos
           </h1>
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+          <p className="text-xl text-gray-600 max-w-2xl mx-auto mb-6">
             Watch the latest content from Average Dad Athletics. Workouts, tips, motivation, and real talk for average dads.
           </p>
+          <a
+            href="https://www.youtube.com/@AverageDadAthletics"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 bg-red-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-red-700 transition-colors"
+          >
+            Subscribe on YouTube
+            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" />
+            </svg>
+          </a>
         </div>
 
         {loading ? (
@@ -218,20 +229,6 @@ export default function VideosPage() {
             )}
           </div>
         )}
-
-        <div className="mt-12 text-center">
-          <a
-            href="https://www.youtube.com/@AverageDadAthletics"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 bg-red-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-red-700 transition-colors"
-          >
-            Subscribe on YouTube
-            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-              <path d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" />
-            </svg>
-          </a>
-        </div>
       </div>
     </div>
   )
