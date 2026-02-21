@@ -8,6 +8,9 @@ export default function CheckShippedOrdersPage() {
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<any>(null)
   const [error, setError] = useState<string | null>(null)
+  const [testEmail, setTestEmail] = useState('')
+  const [testingEmail, setTestingEmail] = useState(false)
+  const [testEmailResult, setTestEmailResult] = useState<any>(null)
 
   const handleCheckShipped = async () => {
     if (!user) {
@@ -34,6 +37,41 @@ export default function CheckShippedOrdersPage() {
       setError(err.message || 'Failed to check shipped orders')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleTestEmail = async () => {
+    if (!testEmail.trim()) {
+      setError('Please enter an email address')
+      return
+    }
+
+    setTestingEmail(true)
+    setError(null)
+    setTestEmailResult(null)
+
+    try {
+      const response = await fetch('/api/printful/test-email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email: testEmail.trim() }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to send test email')
+      }
+
+      const data = await response.json()
+      setTestEmailResult(data)
+      setTestEmail('') // Clear input on success
+    } catch (err: any) {
+      console.error('Error sending test email:', err)
+      setError(err.message || 'Failed to send test email')
+    } finally {
+      setTestingEmail(false)
     }
   }
 
@@ -106,6 +144,38 @@ export default function CheckShippedOrdersPage() {
               <li>Call this endpoint: <code className="bg-blue-100 px-1 rounded">GET /api/printful/check-shipped</code></li>
               <li>Recommended frequency: Every 1-2 hours</li>
             </ul>
+          </div>
+
+          {/* Test Email Section */}
+          <div className="mt-8 pt-8 border-t">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Test Email Sending</h3>
+            <p className="text-gray-600 text-sm mb-4">
+              Test that email notifications are working by sending a test email to yourself.
+            </p>
+            <div className="flex gap-4">
+              <input
+                type="email"
+                value={testEmail}
+                onChange={(e) => setTestEmail(e.target.value)}
+                placeholder="your-email@example.com"
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              />
+              <button
+                onClick={handleTestEmail}
+                disabled={testingEmail || !testEmail.trim()}
+                className="bg-green-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {testingEmail ? 'Sending...' : 'Send Test Email'}
+              </button>
+            </div>
+            {testEmailResult && (
+              <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+                <p className="text-green-800 font-semibold mb-2">Test Email Sent!</p>
+                <p className="text-green-700 text-sm">
+                  {testEmailResult.message || 'Check your inbox (and spam folder) for the test email.'}
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </div>
