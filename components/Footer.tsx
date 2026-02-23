@@ -29,6 +29,11 @@ export default function Footer() {
                   Workouts
                 </Link>
               </li>
+              <li>
+                <Link href="/support" className="hover:text-white transition-colors">
+                  Support
+                </Link>
+              </li>
             </ul>
           </div>
           <div>
@@ -95,6 +100,9 @@ export default function Footer() {
           <div className="flex flex-col md:flex-row justify-between items-center gap-4 text-accent-400">
             <p>&copy; {new Date().getFullYear()} Average Dad Athletics. All rights reserved.</p>
             <div className="flex gap-6 text-sm">
+              <Link href="/support" className="hover:text-white transition-colors">
+                Support
+              </Link>
               <Link href="/privacy" className="hover:text-white transition-colors">
                 Privacy Policy
               </Link>
